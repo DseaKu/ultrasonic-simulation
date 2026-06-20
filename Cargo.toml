@@ -1,0 +1,13 @@
+[package]
+name = "ultrasonic_simulation"
+version = "0.1.0"
+edition = "2024"
+
+
+# Enable high optimizations for dependencies, but not for our code
+[profile.dev.package."*"]
+opt-level = 3
+
+# Enable dynamic linking for faster compilation during development
+[dependencies]
+bevy = { version = "0.18.0", features = ["dynamic_linking"] }
