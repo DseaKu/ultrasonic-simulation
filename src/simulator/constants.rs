@@ -1,0 +1,2 @@
+pub const FREQUENCY_TRANSMITTED: f32 = 40_000.0;
+pub const SPEED_OF_SOUND: f32 = 343.0;
