@@ -4,8 +4,8 @@ mod component;
 mod constant;
 mod system;
 
-pub struct UltrasonicSensor;
-impl Plugin for UltrasonicSensor {
+pub struct UltrasonicSensorPlugin;
+impl Plugin for UltrasonicSensorPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, system::setup_sensor);
     }

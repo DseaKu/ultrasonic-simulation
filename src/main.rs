@@ -1,9 +1,12 @@
 use bevy::prelude::*;
 
+mod camera;
 mod ultrasonic_sensor;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(ultrasonic_sensor::UltrasonicSensor)
+        .insert_resource(ClearColor(Color::WHITE))
+        .add_plugins(ultrasonic_sensor::UltrasonicSensorPlugin)
+        .add_plugins(camera::CameraPlugin)
         .run();
 }
