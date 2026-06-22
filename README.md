@@ -34,20 +34,15 @@ design:
 
 ### Prerequisites
 
-Ensure you have [Rust and Cargo](https://rustup.rs/) installed (supporting the
-2024 edition).
+Ensure you have [Rust](https://rustup.rs/) installed.
 
 ### Running the Project
 
-To compile and launch the simulation environment:
+To compile and launch the simulation:
 
 ```bash
 cargo run
 ```
-
-_Note: Dependencies are compiled with level 3 optimization to maintain high
-performance in Bevy, while the user code remains optimized for rapid development
-compilation._
 
 ---
 
@@ -59,8 +54,8 @@ summary of the core physics pipeline:
 
 ### 1. Spatial Data Collection
 
-In the sensor update loop, a bundle of physics rays is fired from the sensor's
-`Transform` across the configured beam angle. For each hit, the simulator
+In the sensor update loop, a bundle of physics rays is emitted from the sensor's
+position across the configured beam angle. For each hit, the simulator
 registers:
 
 - Hit entity
@@ -69,10 +64,10 @@ registers:
 
 ### 2. Physical Calculations per Hit
 
-- **Relative Velocity ($v$):**
-  $$v = \frac{d_{\text{current}} - d_{\text{previous}}}{\Delta t}$$
 - **Time of Flight ($t_{\text{delay}}$):**
   $$t_{\text{delay}} = \frac{2d_{\text{current}}}{c}$$
+- **Relative Velocity ($v$):**
+  $$v = \frac{d_{\text{current}} - d_{\text{previous}}}{\Delta t}$$
 - **Doppler Shift ($f_r$):** $$f_r = f_t \left( \frac{c - v}{c + v} \right)$$
 
 ### 3. Signal Synthesis & Superposition
@@ -86,7 +81,3 @@ wave interactions to capture interference patterns:
   $$S_i(t) = E_i(t) \cdot \cos(2\pi f_{r,i} (t - t_{\text{delay},i}))$$
 - **Superposition ($S_{\text{total}}(t)$):**
   $$S_{\text{total}}(t) = \sum_{i=1}^{N} S_i(t)$$
-
-This aggregate signal is then processed through envelope extraction (Hilbert
-transform or squaring + low-pass filter) and clutter mitigation systems to
-isolate targets from static backgrounds.
