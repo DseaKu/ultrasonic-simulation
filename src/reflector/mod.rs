@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+mod bundle;
 mod component;
 mod constant;
 mod system;
@@ -10,3 +11,4 @@ impl Plugin for ReflectorPlugin {
         app.add_systems(Startup, system::setup_reflector);
     }
 }
+
