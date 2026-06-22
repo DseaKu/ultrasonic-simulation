@@ -8,6 +8,10 @@ mod system;
 pub struct UltrasonicSensorPlugin;
 impl Plugin for UltrasonicSensorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, system::setup_sensor);
+        app.add_systems(Startup, system::setup_sensor)
+            .add_systems(
+                Update,
+                (system::collect_sensor_data, system::synthesize_signal).chain(),
+            );
     }
 }
