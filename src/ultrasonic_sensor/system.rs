@@ -119,17 +119,38 @@ pub fn synthesize_signal(
     for (sensor, sensor_hits, mut ultrasonic_signal) in query.iter_mut() {
         let fs = 200_000.0; // 200 kHz sample rate
         let dt_s = 1.0 / fs;
-        let t_max = 2.0 * sensor.max_range / sensor.speed_of_sound;
-        let num_samples = (t_max / dt_s).ceil() as usize;
+
+        let min_dist = -30.0; // Start at negative distance to show full transmitted pulse
+        let max_dist = sensor.max_range;
+
+        let t_start = 2.0 * min_dist / sensor.speed_of_sound;
+        let t_end = 2.0 * max_dist / sensor.speed_of_sound;
+        let t_span = t_end - t_start;
+        let num_samples = (t_span / dt_s).ceil() as usize;
 
         let mut signal = vec![0.0; num_samples];
         let mut time_axis = vec![0.0; num_samples];
         for j in 0..num_samples {
-            time_axis[j] = j as f32 * dt_s;
+            time_axis[j] = t_start + j as f32 * dt_s;
         }
 
         let sigma = sensor.pulse_width;
         let sigma_sq = sigma * sigma;
+
+        // Synthesize the transmitted pulse ("main bang") centered at t = 0
+        let tx_amplitude = 6.0 * sensor.gain;
+        let tx_t_start = -4.0 * sigma;
+        let tx_t_end = 4.0 * sigma;
+        let tx_idx_start = (((tx_t_start - t_start) / dt_s) as usize).max(0);
+        let tx_idx_end = (((tx_t_end - t_start) / dt_s) as usize).min(num_samples - 1);
+
+        for j in tx_idx_start..=tx_idx_end {
+            let t = time_axis[j];
+            let diff = t; // t - t_tx where t_tx = 0
+            let env = (-diff * diff / (2.0 * sigma_sq)).exp();
+            let wave = env * (2.0 * std::f32::consts::PI * sensor.frequency * diff).cos();
+            signal[j] += wave * tx_amplitude;
+        }
 
         for hit in sensor_hits.hits.iter() {
             let t_d = hit.delay;
@@ -140,11 +161,11 @@ pub fn synthesize_signal(
             let atten = (150.0 / dist.max(150.0)).powi(2) * sensor.gain;
 
             // Sparse evaluation: within +/- 4 sigma
-            let t_start = (t_d - 4.0 * sigma).max(0.0);
-            let t_end = (t_d + 4.0 * sigma).min(t_max);
+            let echo_t_start = t_d - 4.0 * sigma;
+            let echo_t_end = t_d + 4.0 * sigma;
 
-            let idx_start = (t_start / dt_s) as usize;
-            let idx_end = ((t_end / dt_s) as usize).min(num_samples - 1);
+            let idx_start = (((echo_t_start - t_start) / dt_s) as usize).max(0);
+            let idx_end = (((echo_t_end - t_start) / dt_s) as usize).min(num_samples - 1);
 
             for j in idx_start..=idx_end {
                 let t = time_axis[j];
@@ -185,387 +206,6 @@ pub fn synthesize_signal(
         ultrasonic_signal.time_axis = time_axis;
         ultrasonic_signal.signal = signal;
         ultrasonic_signal.envelope = smooth_envelope;
-    }
-}
-
-// Draw a stroke sequence for our vector oscilloscope font
-fn draw_stroke(gizmos: &mut Gizmos, points: &[(f32, f32)], pos: Vec2, size: f32, color: Color) {
-    for i in 0..points.len().saturating_sub(1) {
-        let p1 = pos + Vec2::new(points[i].0 * size, points[i].1 * size * 1.4);
-        let p2 = pos + Vec2::new(points[i + 1].0 * size, points[i + 1].1 * size * 1.4);
-        gizmos.line_2d(p1, p2, color);
-    }
-}
-
-// Draw a single character in a clean vector/oscilloscope style
-fn draw_char(gizmos: &mut Gizmos, c: char, pos: Vec2, size: f32, color: Color) {
-    match c {
-        '0' => {
-            draw_stroke(
-                gizmos,
-                &[(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0), (0.0, 0.0)],
-                pos,
-                size,
-                color,
-            );
-            draw_stroke(gizmos, &[(0.0, 0.0), (1.0, 1.0)], pos, size, color);
-        }
-        '1' => {
-            draw_stroke(
-                gizmos,
-                &[(0.5, 0.0), (0.5, 1.0), (0.3, 0.8)],
-                pos,
-                size,
-                color,
-            );
-        }
-        '2' => {
-            draw_stroke(
-                gizmos,
-                &[
-                    (0.0, 1.0),
-                    (1.0, 1.0),
-                    (1.0, 0.5),
-                    (0.0, 0.5),
-                    (0.0, 0.0),
-                    (1.0, 0.0),
-                ],
-                pos,
-                size,
-                color,
-            );
-        }
-        '3' => {
-            draw_stroke(
-                gizmos,
-                &[(0.0, 1.0), (1.0, 1.0), (1.0, 0.0), (0.0, 0.0)],
-                pos,
-                size,
-                color,
-            );
-            draw_stroke(gizmos, &[(0.0, 0.5), (1.0, 0.5)], pos, size, color);
-        }
-        '4' => {
-            draw_stroke(
-                gizmos,
-                &[(0.0, 1.0), (0.0, 0.5), (1.0, 0.5)],
-                pos,
-                size,
-                color,
-            );
-            draw_stroke(gizmos, &[(1.0, 1.0), (1.0, 0.0)], pos, size, color);
-        }
-        '5' => {
-            draw_stroke(
-                gizmos,
-                &[
-                    (1.0, 1.0),
-                    (0.0, 1.0),
-                    (0.0, 0.5),
-                    (1.0, 0.5),
-                    (1.0, 0.0),
-                    (0.0, 0.0),
-                ],
-                pos,
-                size,
-                color,
-            );
-        }
-        '6' => {
-            draw_stroke(
-                gizmos,
-                &[
-                    (1.0, 1.0),
-                    (0.0, 1.0),
-                    (0.0, 0.0),
-                    (1.0, 0.0),
-                    (1.0, 0.5),
-                    (0.0, 0.5),
-                ],
-                pos,
-                size,
-                color,
-            );
-        }
-        '7' => {
-            draw_stroke(
-                gizmos,
-                &[(0.0, 1.0), (1.0, 1.0), (0.3, 0.0)],
-                pos,
-                size,
-                color,
-            );
-        }
-        '8' => {
-            draw_stroke(
-                gizmos,
-                &[(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0), (0.0, 0.0)],
-                pos,
-                size,
-                color,
-            );
-            draw_stroke(gizmos, &[(0.0, 0.5), (1.0, 0.5)], pos, size, color);
-        }
-        '9' => {
-            draw_stroke(
-                gizmos,
-                &[(1.0, 0.0), (1.0, 1.0), (0.0, 1.0), (0.0, 0.5), (1.0, 0.5)],
-                pos,
-                size,
-                color,
-            );
-        }
-        '-' => {
-            draw_stroke(gizmos, &[(0.2, 0.5), (0.8, 0.5)], pos, size, color);
-        }
-        '.' => {
-            draw_stroke(
-                gizmos,
-                &[(0.4, 0.0), (0.6, 0.0), (0.6, 0.2), (0.4, 0.2), (0.4, 0.0)],
-                pos,
-                size,
-                color,
-            );
-        }
-        ':' => {
-            draw_stroke(
-                gizmos,
-                &[(0.4, 0.2), (0.6, 0.2), (0.6, 0.35), (0.4, 0.35), (0.4, 0.2)],
-                pos,
-                size,
-                color,
-            );
-            draw_stroke(
-                gizmos,
-                &[
-                    (0.4, 0.65),
-                    (0.6, 0.65),
-                    (0.6, 0.8),
-                    (0.4, 0.8),
-                    (0.4, 0.65),
-                ],
-                pos,
-                size,
-                color,
-            );
-        }
-        'm' => {
-            draw_stroke(
-                gizmos,
-                &[(0.0, 0.0), (0.0, 0.6), (0.5, 0.6), (0.5, 0.0)],
-                pos,
-                size,
-                color,
-            );
-            draw_stroke(
-                gizmos,
-                &[(0.5, 0.6), (1.0, 0.6), (1.0, 0.0)],
-                pos,
-                size,
-                color,
-            );
-        }
-        's' => {
-            draw_stroke(
-                gizmos,
-                &[
-                    (1.0, 0.6),
-                    (0.0, 0.6),
-                    (0.0, 0.3),
-                    (1.0, 0.3),
-                    (1.0, 0.0),
-                    (0.0, 0.0),
-                ],
-                pos,
-                size,
-                color,
-            );
-        }
-        'd' => {
-            draw_stroke(gizmos, &[(1.0, 0.8), (1.0, 0.0)], pos, size, color);
-            draw_stroke(
-                gizmos,
-                &[(1.0, 0.4), (0.0, 0.4), (0.0, 0.0), (1.0, 0.0)],
-                pos,
-                size,
-                color,
-            );
-        }
-        't' => {
-            draw_stroke(
-                gizmos,
-                &[(0.5, 0.8), (0.5, 0.0), (0.8, 0.0)],
-                pos,
-                size,
-                color,
-            );
-            draw_stroke(gizmos, &[(0.2, 0.6), (0.8, 0.6)], pos, size, color);
-        }
-        'a' => {
-            draw_stroke(gizmos, &[(1.0, 0.4), (1.0, 0.0)], pos, size, color);
-            draw_stroke(
-                gizmos,
-                &[(1.0, 0.4), (0.0, 0.4), (0.0, 0.0), (1.0, 0.0)],
-                pos,
-                size,
-                color,
-            );
-            draw_stroke(gizmos, &[(0.0, 0.4), (0.0, 0.2)], pos, size, color);
-        }
-        'n' => {
-            draw_stroke(
-                gizmos,
-                &[(0.0, 0.0), (0.0, 0.5), (1.0, 0.5), (1.0, 0.0)],
-                pos,
-                size,
-                color,
-            );
-        }
-        'c' => {
-            draw_stroke(
-                gizmos,
-                &[(1.0, 0.4), (0.0, 0.4), (0.0, 0.0), (1.0, 0.0)],
-                pos,
-                size,
-                color,
-            );
-        }
-        'e' => {
-            draw_stroke(
-                gizmos,
-                &[
-                    (0.0, 0.0),
-                    (1.0, 0.0),
-                    (1.0, 0.2),
-                    (0.0, 0.2),
-                    (0.0, 0.4),
-                    (1.0, 0.4),
-                ],
-                pos,
-                size,
-                color,
-            );
-        }
-        'v' => {
-            draw_stroke(
-                gizmos,
-                &[(0.0, 0.5), (0.5, 0.0), (1.0, 0.5)],
-                pos,
-                size,
-                color,
-            );
-        }
-        'i' => {
-            draw_stroke(gizmos, &[(0.5, 0.0), (0.5, 0.4)], pos, size, color);
-            draw_stroke(gizmos, &[(0.5, 0.6), (0.5, 0.7)], pos, size, color);
-        }
-        'g' => {
-            draw_stroke(
-                gizmos,
-                &[
-                    (1.0, 0.4),
-                    (0.0, 0.4),
-                    (0.0, 0.0),
-                    (1.0, 0.0),
-                    (1.0, -0.4),
-                    (0.0, -0.4),
-                ],
-                pos,
-                size,
-                color,
-            );
-        }
-        'l' => {
-            draw_stroke(gizmos, &[(0.5, 0.8), (0.5, 0.0)], pos, size, color);
-        }
-        'p' => {
-            draw_stroke(
-                gizmos,
-                &[(0.0, -0.4), (0.0, 0.4), (1.0, 0.4), (1.0, 0.0), (0.0, 0.0)],
-                pos,
-                size,
-                color,
-            );
-        }
-        'u' => {
-            draw_stroke(
-                gizmos,
-                &[(0.0, 0.4), (0.0, 0.0), (1.0, 0.0), (1.0, 0.4)],
-                pos,
-                size,
-                color,
-            );
-        }
-        'r' => {
-            draw_stroke(
-                gizmos,
-                &[(0.0, 0.0), (0.0, 0.4), (1.0, 0.4)],
-                pos,
-                size,
-                color,
-            );
-        }
-        'S' => {
-            draw_stroke(
-                gizmos,
-                &[
-                    (1.0, 0.8),
-                    (0.0, 0.8),
-                    (0.0, 0.4),
-                    (1.0, 0.4),
-                    (1.0, 0.0),
-                    (0.0, 0.0),
-                ],
-                pos,
-                size,
-                color,
-            );
-        }
-        'D' => {
-            draw_stroke(
-                gizmos,
-                &[
-                    (0.0, 0.0),
-                    (0.0, 1.0),
-                    (0.7, 1.0),
-                    (1.0, 0.7),
-                    (1.0, 0.3),
-                    (0.7, 0.0),
-                    (0.0, 0.0),
-                ],
-                pos,
-                size,
-                color,
-            );
-        }
-        'C' => {
-            draw_stroke(
-                gizmos,
-                &[(1.0, 1.0), (0.0, 1.0), (0.0, 0.0), (1.0, 0.0)],
-                pos,
-                size,
-                color,
-            );
-        }
-        ' ' => {}
-        _ => {
-            draw_stroke(
-                gizmos,
-                &[(0.2, 0.2), (0.8, 0.2), (0.8, 0.8), (0.2, 0.8), (0.2, 0.2)],
-                pos,
-                size,
-                color,
-            );
-        }
-    }
-}
-
-// Draw a string using the vector font
-fn draw_string(gizmos: &mut Gizmos, s: &str, start_pos: Vec2, size: f32, color: Color) {
-    let mut current_pos = start_pos;
-    for c in s.chars() {
-        draw_char(gizmos, c, current_pos, size, color);
-        current_pos.x += size * 1.3;
     }
 }
 
@@ -622,21 +262,41 @@ pub fn plot_sensor_signal(
             grid_color,
         );
 
-        // Draw vertical grid ticks and labels (every 100 distance units)
+        // Distances alignment constants
+        let min_dist = -30.0;
         let max_range = sensor.max_range;
+        let total_dist = max_range - min_dist;
+
+        let get_x = |d: f32| -> f32 {
+            bottom_left.x + ((d - min_dist) / total_dist) * plot_width
+        };
+
+        // Draw negative start tick
+        {
+            let x = get_x(min_dist);
+            gizmos.line_2d(Vec2::new(x, bottom_left.y), Vec2::new(x, bottom_left.y - 5.0), border_color);
+            let label = format!("{}", min_dist as i32);
+            gizmos.text_2d(
+                Vec2::new(x, bottom_left.y - 15.0),
+                &label,
+                11.0,
+                Vec2::ZERO,
+                border_color,
+            );
+        }
+
+        // Draw vertical grid ticks and labels (every 100 distance units starting at 0)
         let num_ticks = 8;
         for i in 0..=num_ticks {
-            let t = i as f32 / num_ticks as f32;
-            let x = bottom_left.x + t * plot_width;
+            let dist = (i * 100) as f32;
+            let x = get_x(dist);
 
             // Grid line
-            if i > 0 && i < num_ticks {
-                gizmos.line_2d(
-                    Vec2::new(x, bottom_left.y),
-                    Vec2::new(x, top_right.y),
-                    grid_color,
-                );
-            }
+            gizmos.line_2d(
+                Vec2::new(x, bottom_left.y),
+                Vec2::new(x, top_right.y),
+                grid_color,
+            );
 
             // Tick mark
             gizmos.line_2d(
@@ -646,13 +306,12 @@ pub fn plot_sensor_signal(
             );
 
             // Tick label (distance in mm/units)
-            let dist = (t * max_range) as i32;
-            let label = format!("{}", dist);
-            draw_string(
-                &mut gizmos,
+            let label = format!("{}", dist as i32);
+            gizmos.text_2d(
+                Vec2::new(x, bottom_left.y - 15.0),
                 &label,
-                Vec2::new(x - (label.len() as f32 * 3.5), bottom_left.y - 20.0),
-                6.0,
+                11.0,
+                Vec2::ZERO,
                 border_color,
             );
         }
@@ -660,6 +319,7 @@ pub fn plot_sensor_signal(
         // Plot signal and envelope
         let signal = &ultrasonic_signal.signal;
         let envelope = &ultrasonic_signal.envelope;
+        let time_axis = &ultrasonic_signal.time_axis;
         let num_samples = signal.len();
 
         // Use a fixed scaling factor based on the number of rays to visualize physical attenuation
@@ -676,8 +336,9 @@ pub fn plot_sensor_signal(
         let mut prev_env_point: Option<Vec2> = None;
 
         for idx in (0..num_samples).step_by(step) {
-            let t = idx as f32 / (num_samples - 1) as f32;
-            let x = bottom_left.x + t * plot_width;
+            let t = time_axis[idx];
+            let dist = t * sensor.speed_of_sound / 2.0;
+            let x = get_x(dist);
 
             // Carrier Wave
             let sig_val = signal[idx];
@@ -700,44 +361,44 @@ pub fn plot_sensor_signal(
             prev_env_point = Some(env_point);
         }
 
-        // Draw Plot Titles and Legends
-        draw_string(
-            &mut gizmos,
-            "Ultrasonic Echo Signal (Superposition)",
+        // Draw Plot Titles and Legends (using correct text_2d alignment bounds)
+        gizmos.text_2d(
             Vec2::new(bottom_left.x, top_right.y + 10.0),
-            8.0,
+            "Ultrasonic Echo Signal (Superposition)",
+            14.0,
+            Vec2::new(-0.5, 0.0), // Left aligned
             Color::BLACK,
         );
-        draw_string(
-            &mut gizmos,
+        gizmos.text_2d(
+            Vec2::new(plot_center.x, bottom_left.y - 35.0),
             "Distance (mm)",
-            Vec2::new(plot_center.x - 50.0, bottom_left.y - 35.0),
-            8.0,
+            13.0,
+            Vec2::ZERO, // Centered
             border_color,
         );
 
-        draw_string(
-            &mut gizmos,
+        gizmos.text_2d(
+            Vec2::new(top_right.x - 100.0, top_right.y + 10.0),
             "Carrier Wave",
-            Vec2::new(top_right.x - 220.0, top_right.y + 10.0),
-            6.5,
+            12.0,
+            Vec2::new(0.5, 0.0), // Right aligned relative to position
             signal_color,
         );
-        draw_string(
-            &mut gizmos,
+        gizmos.text_2d(
+            Vec2::new(top_right.x, top_right.y + 10.0),
             "Envelope",
-            Vec2::new(top_right.x - 90.0, top_right.y + 10.0),
-            6.5,
+            12.0,
+            Vec2::new(0.5, 0.0), // Right aligned relative to position
             env_color,
         );
 
         // Display gain adjustment instructions
         let gain_text = format!("Gain: {:.1}x (+/- to adjust)", sensor.gain);
-        draw_string(
-            &mut gizmos,
-            &gain_text,
+        gizmos.text_2d(
             Vec2::new(bottom_left.x, bottom_left.y - 35.0),
-            7.0,
+            &gain_text,
+            12.0,
+            Vec2::new(-0.5, 0.0), // Left aligned
             Color::BLACK,
         );
     }
