@@ -136,8 +136,8 @@ pub fn synthesize_signal(
             let f_r = hit.doppler_freq;
             let dist = hit.distance;
 
-            // Physical distance attenuation: inverse square law (reference distance of 150.0)
-            let atten = (150.0 / dist.max(150.0)).powi(2);
+            // Physical distance attenuation: inverse square law (reference distance of 150.0) scaled by gain
+            let atten = (150.0 / dist.max(150.0)).powi(2) * sensor.gain;
 
             // Sparse evaluation: within +/- 4 sigma
             let t_start = (t_d - 4.0 * sigma).max(0.0);
@@ -192,7 +192,7 @@ pub fn synthesize_signal(
 fn draw_stroke(gizmos: &mut Gizmos, points: &[(f32, f32)], pos: Vec2, size: f32, color: Color) {
     for i in 0..points.len().saturating_sub(1) {
         let p1 = pos + Vec2::new(points[i].0 * size, points[i].1 * size * 1.4);
-        let p2 = pos + Vec2::new(points[i+1].0 * size, points[i+1].1 * size * 1.4);
+        let p2 = pos + Vec2::new(points[i + 1].0 * size, points[i + 1].1 * size * 1.4);
         gizmos.line_2d(p1, p2, color);
     }
 }
@@ -201,112 +201,361 @@ fn draw_stroke(gizmos: &mut Gizmos, points: &[(f32, f32)], pos: Vec2, size: f32,
 fn draw_char(gizmos: &mut Gizmos, c: char, pos: Vec2, size: f32, color: Color) {
     match c {
         '0' => {
-            draw_stroke(gizmos, &[(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0), (0.0, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0), (0.0, 0.0)],
+                pos,
+                size,
+                color,
+            );
             draw_stroke(gizmos, &[(0.0, 0.0), (1.0, 1.0)], pos, size, color);
         }
         '1' => {
-            draw_stroke(gizmos, &[(0.5, 0.0), (0.5, 1.0), (0.3, 0.8)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(0.5, 0.0), (0.5, 1.0), (0.3, 0.8)],
+                pos,
+                size,
+                color,
+            );
         }
         '2' => {
-            draw_stroke(gizmos, &[(0.0, 1.0), (1.0, 1.0), (1.0, 0.5), (0.0, 0.5), (0.0, 0.0), (1.0, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[
+                    (0.0, 1.0),
+                    (1.0, 1.0),
+                    (1.0, 0.5),
+                    (0.0, 0.5),
+                    (0.0, 0.0),
+                    (1.0, 0.0),
+                ],
+                pos,
+                size,
+                color,
+            );
         }
         '3' => {
-            draw_stroke(gizmos, &[(0.0, 1.0), (1.0, 1.0), (1.0, 0.0), (0.0, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(0.0, 1.0), (1.0, 1.0), (1.0, 0.0), (0.0, 0.0)],
+                pos,
+                size,
+                color,
+            );
             draw_stroke(gizmos, &[(0.0, 0.5), (1.0, 0.5)], pos, size, color);
         }
         '4' => {
-            draw_stroke(gizmos, &[(0.0, 1.0), (0.0, 0.5), (1.0, 0.5)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(0.0, 1.0), (0.0, 0.5), (1.0, 0.5)],
+                pos,
+                size,
+                color,
+            );
             draw_stroke(gizmos, &[(1.0, 1.0), (1.0, 0.0)], pos, size, color);
         }
         '5' => {
-            draw_stroke(gizmos, &[(1.0, 1.0), (0.0, 1.0), (0.0, 0.5), (1.0, 0.5), (1.0, 0.0), (0.0, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[
+                    (1.0, 1.0),
+                    (0.0, 1.0),
+                    (0.0, 0.5),
+                    (1.0, 0.5),
+                    (1.0, 0.0),
+                    (0.0, 0.0),
+                ],
+                pos,
+                size,
+                color,
+            );
         }
         '6' => {
-            draw_stroke(gizmos, &[(1.0, 1.0), (0.0, 1.0), (0.0, 0.0), (1.0, 0.0), (1.0, 0.5), (0.0, 0.5)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[
+                    (1.0, 1.0),
+                    (0.0, 1.0),
+                    (0.0, 0.0),
+                    (1.0, 0.0),
+                    (1.0, 0.5),
+                    (0.0, 0.5),
+                ],
+                pos,
+                size,
+                color,
+            );
         }
         '7' => {
-            draw_stroke(gizmos, &[(0.0, 1.0), (1.0, 1.0), (0.3, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(0.0, 1.0), (1.0, 1.0), (0.3, 0.0)],
+                pos,
+                size,
+                color,
+            );
         }
         '8' => {
-            draw_stroke(gizmos, &[(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0), (0.0, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0), (0.0, 0.0)],
+                pos,
+                size,
+                color,
+            );
             draw_stroke(gizmos, &[(0.0, 0.5), (1.0, 0.5)], pos, size, color);
         }
         '9' => {
-            draw_stroke(gizmos, &[(1.0, 0.0), (1.0, 1.0), (0.0, 1.0), (0.0, 0.5), (1.0, 0.5)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(1.0, 0.0), (1.0, 1.0), (0.0, 1.0), (0.0, 0.5), (1.0, 0.5)],
+                pos,
+                size,
+                color,
+            );
         }
         '-' => {
             draw_stroke(gizmos, &[(0.2, 0.5), (0.8, 0.5)], pos, size, color);
         }
         '.' => {
-            draw_stroke(gizmos, &[(0.4, 0.0), (0.6, 0.0), (0.6, 0.2), (0.4, 0.2), (0.4, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(0.4, 0.0), (0.6, 0.0), (0.6, 0.2), (0.4, 0.2), (0.4, 0.0)],
+                pos,
+                size,
+                color,
+            );
         }
         ':' => {
-            draw_stroke(gizmos, &[(0.4, 0.2), (0.6, 0.2), (0.6, 0.35), (0.4, 0.35), (0.4, 0.2)], pos, size, color);
-            draw_stroke(gizmos, &[(0.4, 0.65), (0.6, 0.65), (0.6, 0.8), (0.4, 0.8), (0.4, 0.65)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(0.4, 0.2), (0.6, 0.2), (0.6, 0.35), (0.4, 0.35), (0.4, 0.2)],
+                pos,
+                size,
+                color,
+            );
+            draw_stroke(
+                gizmos,
+                &[
+                    (0.4, 0.65),
+                    (0.6, 0.65),
+                    (0.6, 0.8),
+                    (0.4, 0.8),
+                    (0.4, 0.65),
+                ],
+                pos,
+                size,
+                color,
+            );
         }
         'm' => {
-            draw_stroke(gizmos, &[(0.0, 0.0), (0.0, 0.6), (0.5, 0.6), (0.5, 0.0)], pos, size, color);
-            draw_stroke(gizmos, &[(0.5, 0.6), (1.0, 0.6), (1.0, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(0.0, 0.0), (0.0, 0.6), (0.5, 0.6), (0.5, 0.0)],
+                pos,
+                size,
+                color,
+            );
+            draw_stroke(
+                gizmos,
+                &[(0.5, 0.6), (1.0, 0.6), (1.0, 0.0)],
+                pos,
+                size,
+                color,
+            );
         }
         's' => {
-            draw_stroke(gizmos, &[(1.0, 0.6), (0.0, 0.6), (0.0, 0.3), (1.0, 0.3), (1.0, 0.0), (0.0, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[
+                    (1.0, 0.6),
+                    (0.0, 0.6),
+                    (0.0, 0.3),
+                    (1.0, 0.3),
+                    (1.0, 0.0),
+                    (0.0, 0.0),
+                ],
+                pos,
+                size,
+                color,
+            );
         }
         'd' => {
             draw_stroke(gizmos, &[(1.0, 0.8), (1.0, 0.0)], pos, size, color);
-            draw_stroke(gizmos, &[(1.0, 0.4), (0.0, 0.4), (0.0, 0.0), (1.0, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(1.0, 0.4), (0.0, 0.4), (0.0, 0.0), (1.0, 0.0)],
+                pos,
+                size,
+                color,
+            );
         }
         't' => {
-            draw_stroke(gizmos, &[(0.5, 0.8), (0.5, 0.0), (0.8, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(0.5, 0.8), (0.5, 0.0), (0.8, 0.0)],
+                pos,
+                size,
+                color,
+            );
             draw_stroke(gizmos, &[(0.2, 0.6), (0.8, 0.6)], pos, size, color);
         }
         'a' => {
             draw_stroke(gizmos, &[(1.0, 0.4), (1.0, 0.0)], pos, size, color);
-            draw_stroke(gizmos, &[(1.0, 0.4), (0.0, 0.4), (0.0, 0.0), (1.0, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(1.0, 0.4), (0.0, 0.4), (0.0, 0.0), (1.0, 0.0)],
+                pos,
+                size,
+                color,
+            );
             draw_stroke(gizmos, &[(0.0, 0.4), (0.0, 0.2)], pos, size, color);
         }
         'n' => {
-            draw_stroke(gizmos, &[(0.0, 0.0), (0.0, 0.5), (1.0, 0.5), (1.0, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(0.0, 0.0), (0.0, 0.5), (1.0, 0.5), (1.0, 0.0)],
+                pos,
+                size,
+                color,
+            );
         }
         'c' => {
-            draw_stroke(gizmos, &[(1.0, 0.4), (0.0, 0.4), (0.0, 0.0), (1.0, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(1.0, 0.4), (0.0, 0.4), (0.0, 0.0), (1.0, 0.0)],
+                pos,
+                size,
+                color,
+            );
         }
         'e' => {
-            draw_stroke(gizmos, &[(0.0, 0.0), (1.0, 0.0), (1.0, 0.2), (0.0, 0.2), (0.0, 0.4), (1.0, 0.4)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[
+                    (0.0, 0.0),
+                    (1.0, 0.0),
+                    (1.0, 0.2),
+                    (0.0, 0.2),
+                    (0.0, 0.4),
+                    (1.0, 0.4),
+                ],
+                pos,
+                size,
+                color,
+            );
         }
         'v' => {
-            draw_stroke(gizmos, &[(0.0, 0.5), (0.5, 0.0), (1.0, 0.5)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(0.0, 0.5), (0.5, 0.0), (1.0, 0.5)],
+                pos,
+                size,
+                color,
+            );
         }
         'i' => {
             draw_stroke(gizmos, &[(0.5, 0.0), (0.5, 0.4)], pos, size, color);
             draw_stroke(gizmos, &[(0.5, 0.6), (0.5, 0.7)], pos, size, color);
         }
         'g' => {
-            draw_stroke(gizmos, &[(1.0, 0.4), (0.0, 0.4), (0.0, 0.0), (1.0, 0.0), (1.0, -0.4), (0.0, -0.4)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[
+                    (1.0, 0.4),
+                    (0.0, 0.4),
+                    (0.0, 0.0),
+                    (1.0, 0.0),
+                    (1.0, -0.4),
+                    (0.0, -0.4),
+                ],
+                pos,
+                size,
+                color,
+            );
         }
         'l' => {
             draw_stroke(gizmos, &[(0.5, 0.8), (0.5, 0.0)], pos, size, color);
         }
         'p' => {
-            draw_stroke(gizmos, &[(0.0, -0.4), (0.0, 0.4), (1.0, 0.4), (1.0, 0.0), (0.0, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(0.0, -0.4), (0.0, 0.4), (1.0, 0.4), (1.0, 0.0), (0.0, 0.0)],
+                pos,
+                size,
+                color,
+            );
         }
         'u' => {
-            draw_stroke(gizmos, &[(0.0, 0.4), (0.0, 0.0), (1.0, 0.0), (1.0, 0.4)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(0.0, 0.4), (0.0, 0.0), (1.0, 0.0), (1.0, 0.4)],
+                pos,
+                size,
+                color,
+            );
         }
         'r' => {
-            draw_stroke(gizmos, &[(0.0, 0.0), (0.0, 0.4), (1.0, 0.4)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(0.0, 0.0), (0.0, 0.4), (1.0, 0.4)],
+                pos,
+                size,
+                color,
+            );
         }
         'S' => {
-            draw_stroke(gizmos, &[(1.0, 0.8), (0.0, 0.8), (0.0, 0.4), (1.0, 0.4), (1.0, 0.0), (0.0, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[
+                    (1.0, 0.8),
+                    (0.0, 0.8),
+                    (0.0, 0.4),
+                    (1.0, 0.4),
+                    (1.0, 0.0),
+                    (0.0, 0.0),
+                ],
+                pos,
+                size,
+                color,
+            );
         }
         'D' => {
-            draw_stroke(gizmos, &[(0.0, 0.0), (0.0, 1.0), (0.7, 1.0), (1.0, 0.7), (1.0, 0.3), (0.7, 0.0), (0.0, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[
+                    (0.0, 0.0),
+                    (0.0, 1.0),
+                    (0.7, 1.0),
+                    (1.0, 0.7),
+                    (1.0, 0.3),
+                    (0.7, 0.0),
+                    (0.0, 0.0),
+                ],
+                pos,
+                size,
+                color,
+            );
         }
         'C' => {
-            draw_stroke(gizmos, &[(1.0, 1.0), (0.0, 1.0), (0.0, 0.0), (1.0, 0.0)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(1.0, 1.0), (0.0, 1.0), (0.0, 0.0), (1.0, 0.0)],
+                pos,
+                size,
+                color,
+            );
         }
         ' ' => {}
         _ => {
-            draw_stroke(gizmos, &[(0.2, 0.2), (0.8, 0.2), (0.8, 0.8), (0.2, 0.8), (0.2, 0.2)], pos, size, color);
+            draw_stroke(
+                gizmos,
+                &[(0.2, 0.2), (0.8, 0.2), (0.8, 0.8), (0.2, 0.8), (0.2, 0.2)],
+                pos,
+                size,
+                color,
+            );
         }
     }
 }
@@ -345,13 +594,33 @@ pub fn plot_sensor_signal(
         let grid_color = Color::srgb(0.15, 0.15, 0.15);
 
         // Draw background frame using gizmos
-        gizmos.line_2d(Vec2::new(bottom_left.x, bottom_left.y), Vec2::new(bottom_left.x, top_right.y), border_color);
-        gizmos.line_2d(Vec2::new(top_right.x, bottom_left.y), Vec2::new(top_right.x, top_right.y), border_color);
-        gizmos.line_2d(Vec2::new(bottom_left.x, bottom_left.y), Vec2::new(top_right.x, bottom_left.y), border_color);
-        gizmos.line_2d(Vec2::new(bottom_left.x, top_right.y), Vec2::new(top_right.x, top_right.y), border_color);
+        gizmos.line_2d(
+            Vec2::new(bottom_left.x, bottom_left.y),
+            Vec2::new(bottom_left.x, top_right.y),
+            border_color,
+        );
+        gizmos.line_2d(
+            Vec2::new(top_right.x, bottom_left.y),
+            Vec2::new(top_right.x, top_right.y),
+            border_color,
+        );
+        gizmos.line_2d(
+            Vec2::new(bottom_left.x, bottom_left.y),
+            Vec2::new(top_right.x, bottom_left.y),
+            border_color,
+        );
+        gizmos.line_2d(
+            Vec2::new(bottom_left.x, top_right.y),
+            Vec2::new(top_right.x, top_right.y),
+            border_color,
+        );
 
         // Center line (zero amplitude)
-        gizmos.line_2d(Vec2::new(bottom_left.x, plot_center.y), Vec2::new(top_right.x, plot_center.y), grid_color);
+        gizmos.line_2d(
+            Vec2::new(bottom_left.x, plot_center.y),
+            Vec2::new(top_right.x, plot_center.y),
+            grid_color,
+        );
 
         // Draw vertical grid ticks and labels (every 100 distance units)
         let max_range = sensor.max_range;
@@ -359,19 +628,33 @@ pub fn plot_sensor_signal(
         for i in 0..=num_ticks {
             let t = i as f32 / num_ticks as f32;
             let x = bottom_left.x + t * plot_width;
-            
+
             // Grid line
             if i > 0 && i < num_ticks {
-                gizmos.line_2d(Vec2::new(x, bottom_left.y), Vec2::new(x, top_right.y), grid_color);
+                gizmos.line_2d(
+                    Vec2::new(x, bottom_left.y),
+                    Vec2::new(x, top_right.y),
+                    grid_color,
+                );
             }
 
             // Tick mark
-            gizmos.line_2d(Vec2::new(x, bottom_left.y), Vec2::new(x, bottom_left.y - 5.0), border_color);
+            gizmos.line_2d(
+                Vec2::new(x, bottom_left.y),
+                Vec2::new(x, bottom_left.y - 5.0),
+                border_color,
+            );
 
             // Tick label (distance in mm/units)
             let dist = (t * max_range) as i32;
             let label = format!("{}", dist);
-            draw_string(&mut gizmos, &label, Vec2::new(x - (label.len() as f32 * 3.5), bottom_left.y - 20.0), 6.0, border_color);
+            draw_string(
+                &mut gizmos,
+                &label,
+                Vec2::new(x - (label.len() as f32 * 3.5), bottom_left.y - 20.0),
+                6.0,
+                border_color,
+            );
         }
 
         // Plot signal and envelope
@@ -418,12 +701,59 @@ pub fn plot_sensor_signal(
         }
 
         // Draw Plot Titles and Legends
-        draw_string(&mut gizmos, "Ultrasonic Echo Signal (Superposition)", Vec2::new(bottom_left.x, top_right.y + 10.0), 8.0, Color::WHITE);
-        draw_string(&mut gizmos, "Distance (mm)", Vec2::new(plot_center.x - 50.0, bottom_left.y - 35.0), 8.0, border_color);
+        draw_string(
+            &mut gizmos,
+            "Ultrasonic Echo Signal (Superposition)",
+            Vec2::new(bottom_left.x, top_right.y + 10.0),
+            8.0,
+            Color::BLACK,
+        );
+        draw_string(
+            &mut gizmos,
+            "Distance (mm)",
+            Vec2::new(plot_center.x - 50.0, bottom_left.y - 35.0),
+            8.0,
+            border_color,
+        );
 
-        draw_string(&mut gizmos, "Carrier Wave", Vec2::new(top_right.x - 220.0, top_right.y + 10.0), 6.5, signal_color);
-        draw_string(&mut gizmos, "Envelope", Vec2::new(top_right.x - 90.0, top_right.y + 10.0), 6.5, env_color);
+        draw_string(
+            &mut gizmos,
+            "Carrier Wave",
+            Vec2::new(top_right.x - 220.0, top_right.y + 10.0),
+            6.5,
+            signal_color,
+        );
+        draw_string(
+            &mut gizmos,
+            "Envelope",
+            Vec2::new(top_right.x - 90.0, top_right.y + 10.0),
+            6.5,
+            env_color,
+        );
+
+        // Display gain adjustment instructions
+        let gain_text = format!("Gain: {:.1}x (+/- to adjust)", sensor.gain);
+        draw_string(
+            &mut gizmos,
+            &gain_text,
+            Vec2::new(bottom_left.x, bottom_left.y - 35.0),
+            7.0,
+            Color::BLACK,
+        );
     }
 }
 
-
+// System to dynamically adjust the sensor's amplification factor
+pub fn adjust_sensor_gain(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut query: Query<&mut component::UltrasonicSensor>,
+) {
+    for mut sensor in query.iter_mut() {
+        if keyboard.just_pressed(KeyCode::Equal) || keyboard.just_pressed(KeyCode::NumpadAdd) {
+            sensor.gain = (sensor.gain + 0.5).min(20.0);
+        }
+        if keyboard.just_pressed(KeyCode::Minus) || keyboard.just_pressed(KeyCode::NumpadSubtract) {
+            sensor.gain = (sensor.gain - 0.5).max(0.5);
+        }
+    }
+}

@@ -12,6 +12,7 @@ impl Plugin for UltrasonicSensorPlugin {
             .add_systems(
                 Update,
                 (
+                    system::adjust_sensor_gain,
                     system::collect_sensor_data,
                     system::synthesize_signal,
                     system::plot_sensor_signal,
