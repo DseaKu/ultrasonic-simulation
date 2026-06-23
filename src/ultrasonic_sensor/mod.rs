@@ -11,7 +11,11 @@ impl Plugin for UltrasonicSensorPlugin {
         app.add_systems(Startup, system::setup_sensor)
             .add_systems(
                 Update,
-                (system::collect_sensor_data, system::synthesize_signal).chain(),
+                (
+                    system::collect_sensor_data,
+                    system::synthesize_signal,
+                    system::plot_sensor_signal,
+                ).chain(),
             );
     }
 }

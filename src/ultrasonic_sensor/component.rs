@@ -26,6 +26,7 @@ impl UltrasonicSensor {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct RayHit {
     pub entity: Entity,
     pub point: Vec2,
