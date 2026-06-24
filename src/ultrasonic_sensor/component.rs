@@ -27,7 +27,7 @@ impl UltrasonicSensor {
             max_range: 800.0,                 // Max distance the rays can travel
             gain: 1.0,                        // Default amplification factor
             smoothed_rx_frequency: constant::FREQUENCY_TRANSMITTED,
-            doppler_exaggeration: 300.0,
+            doppler_exaggeration: 0.0,
             show_rays: false,
         }
     }
