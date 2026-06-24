@@ -120,7 +120,7 @@ pub fn synthesize_signal(
         let fs = 200_000.0; // 200 kHz sample rate
         let dt_s = 1.0 / fs;
 
-        let min_dist = -30.0; // Start at negative distance to show full transmitted pulse
+        let min_dist = -100.0; // Start at negative distance to show full transmitted pulse
         let max_dist = sensor.max_range;
 
         let t_start = 2.0 * min_dist / sensor.speed_of_sound;
@@ -176,31 +176,25 @@ pub fn synthesize_signal(
             }
         }
 
-        // 1. Peak follower envelope detection
+        // 1. Zero-phase low-pass filter envelope detection
         let mut envelope = vec![0.0; num_samples];
-        let mut env_val = 0.0;
-        let decay = (-dt_s / 0.00015).exp(); // tau = 0.15 ms for 1 ms pulse width
+        let alpha = 0.08; // Cutoff frequency (~2.5 kHz) to smooth out the 40 kHz carrier ripples
+
+        // Forward filter pass
+        let mut filter_state = 0.0;
         for j in 0..num_samples {
-            let abs_val = signal[j].abs();
-            if abs_val > env_val {
-                env_val = abs_val;
-            } else {
-                env_val *= decay;
-            }
-            envelope[j] = env_val;
+            let rect_val = signal[j].abs();
+            filter_state = alpha * rect_val + (1.0 - alpha) * filter_state;
+            envelope[j] = filter_state;
         }
 
-        // Forward-backward smoothing for zero-phase alignment
+        // Backward filter pass for zero-phase alignment and double-stage smoothing
         let mut smooth_envelope = vec![0.0; num_samples];
-        let mut env_back = 0.0;
+        let mut filter_state_back = 0.0;
         for j in (0..num_samples).rev() {
             let val = envelope[j];
-            if val > env_back {
-                env_back = val;
-            } else {
-                env_back *= decay;
-            }
-            smooth_envelope[j] = (val + env_back) * 0.5;
+            filter_state_back = alpha * val + (1.0 - alpha) * filter_state_back;
+            smooth_envelope[j] = filter_state_back * 1.57; // Multiply by pi/2 to restore peak amplitude
         }
 
         ultrasonic_signal.time_axis = time_axis;
@@ -263,7 +257,7 @@ pub fn plot_sensor_signal(
         );
 
         // Distances alignment constants
-        let min_dist = -30.0;
+        let min_dist = -100.0;
         let max_range = sensor.max_range;
         let total_dist = max_range - min_dist;
 

@@ -18,7 +18,7 @@ impl UltrasonicSensor {
         Self {
             frequency: constant::FREQUENCY_TRANSMITTED,
             speed_of_sound: constant::SPEED_OF_SOUND,
-            pulse_width: 0.011,               // 1 ms pulse width by default
+            pulse_width: 0.0001,              // 1 ms pulse width by default
             beam_angle: 30.0f32.to_radians(), // 30 degrees beam spread
             ray_count: 32,                    // 32 rays in the cone
             max_range: 800.0,                 // Max distance the rays can travel

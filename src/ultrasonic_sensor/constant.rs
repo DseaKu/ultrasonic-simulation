@@ -1,5 +1,5 @@
 pub const FREQUENCY_TRANSMITTED: f32 = 40_000.0;
-pub const SPEED_OF_SOUND: f32 = 343.0;
+pub const SPEED_OF_SOUND: f32 = 343_000.0;
 
 pub mod spawn_position {
     pub const X: f32 = -400.0;
