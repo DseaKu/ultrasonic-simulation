@@ -17,11 +17,21 @@ impl ReflectorBundle {
         Self {
             sprite: Sprite {
                 color: BLACK.into(),
-                custom_size: Some(Vec2::new(120.0, 120.0)),
+                custom_size: Some(Vec2::new(
+                    super::constant::dimensions::WIDTH,
+                    super::constant::dimensions::HEIGHT,
+                )),
                 ..default()
             },
-            transform: Transform::from_xyz(200.0, 0.0, 0.0),
-            collider: Collider::rectangle(120.0, 120.0),
+            transform: Transform::from_xyz(
+                super::constant::spawn_position::X,
+                super::constant::spawn_position::Y,
+                super::constant::spawn_position::Z,
+            ),
+            collider: Collider::rectangle(
+                super::constant::dimensions::WIDTH,
+                super::constant::dimensions::HEIGHT,
+            ),
             rigid_body: RigidBody::Kinematic,
             reflector: component::Reflector::new(),
         }

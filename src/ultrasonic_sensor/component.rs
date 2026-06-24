@@ -10,10 +10,11 @@ pub struct UltrasonicSensor {
     pub beam_angle: f32,
     pub ray_count: usize,
     pub max_range: f32,
-    pub gain: f32,
+    pub gain_db: f32,
     pub smoothed_rx_frequency: f32,
     pub doppler_exaggeration: f32,
     pub show_rays: bool,
+    pub show_carrier_wave: bool,
     pub temperature: f32,
     pub tx_amplitude: f32,
 }
@@ -23,16 +24,17 @@ impl UltrasonicSensor {
         Self {
             frequency: constant::FREQUENCY_TRANSMITTED,
             speed_of_sound: constant::SPEED_OF_SOUND,
-            pulse_width: 0.00005,             // 1 ms pulse width by default
-            beam_angle: 30.0f32.to_radians(), // 30 degrees beam spread
-            ray_count: 32,                    // 32 rays in the cone
-            max_range: 5000.0,                // Max distance the rays can travel (5 meters)
-            gain: 1.0,                        // Default amplification factor
+            pulse_width: constant::defaults::PULSE_WIDTH,
+            beam_angle: constant::defaults::BEAM_ANGLE_DEG.to_radians(),
+            ray_count: constant::defaults::RAY_COUNT,
+            max_range: constant::defaults::MAX_RANGE,
+            gain_db: constant::defaults::GAIN_DB,
             smoothed_rx_frequency: constant::FREQUENCY_TRANSMITTED,
-            doppler_exaggeration: 0.0,
-            show_rays: false,
-            temperature: 20.0,
-            tx_amplitude: constant::signal::TX_AMPLITUDE,
+            doppler_exaggeration: constant::defaults::DOPPLER_EXAGGERATION,
+            show_rays: constant::defaults::SHOW_RAYS,
+            show_carrier_wave: constant::defaults::SHOW_CARRIER_WAVE,
+            temperature: constant::defaults::TEMPERATURE,
+            tx_amplitude: constant::defaults::TX_AMPLITUDE,
         }
     }
 }

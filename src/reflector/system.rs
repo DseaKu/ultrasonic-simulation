@@ -14,7 +14,6 @@ pub fn move_reflector(
     let dt = time.delta_secs();
 
     for (mut transform, mut reflector) in query.iter_mut() {
-        let speed = reflector.speed;
         let mut input_direction = Vec2::ZERO;
 
         // X-axis: A/D keys
@@ -33,13 +32,14 @@ pub fn move_reflector(
             input_direction.y -= 1.0;
         }
 
-        let target_velocity = input_direction.normalize_or_zero() * speed;
+        let speed_mm_s = reflector.speed * 1000.0;
+        let target_velocity = input_direction.normalize_or_zero() * speed_mm_s;
 
         // Smoothly interpolate current velocity towards target velocity
         // Higher lerp factor = faster acceleration/deceleration
         reflector.current_velocity = reflector.current_velocity.lerp(
             target_velocity,
-            (super::constant::ACCELERATION_FACTOR * dt).min(1.0),
+            (super::constant::defaults::ACCELERATION_FACTOR * dt).min(1.0),
         );
 
         transform.translation += reflector.current_velocity.extend(0.0) * dt;

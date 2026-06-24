@@ -10,7 +10,7 @@ pub struct Reflector {
 impl Reflector {
     pub fn new() -> Self {
         Self {
-            speed: constant::SPEED,
+            speed: constant::defaults::SPEED,
             current_velocity: Vec2::ZERO,
         }
     }

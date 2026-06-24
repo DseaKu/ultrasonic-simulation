@@ -197,7 +197,7 @@ pub fn synthesize_signal(
         let t_span = t_end - t_start;
         let num_samples = (t_span / dt_s).ceil() as usize;
 
-        let mut signal = vec![0.0; num_samples];
+
         let mut time_axis = vec![0.0; num_samples];
         for (j, time) in time_axis.iter_mut().enumerate() {
             *time = t_start + j as f32 * dt_s;
@@ -205,9 +205,12 @@ pub fn synthesize_signal(
 
         let sigma = sensor.pulse_width;
         let sigma_sq = sigma * sigma;
+        let mut i_signal = vec![0.0; num_samples];
+        let mut q_signal = vec![0.0; num_samples];
+        let f_tx = sensor.frequency;
 
         // Synthesize the transmitted pulse ("main bang") centered at t = 0
-        let tx_amplitude = sensor.tx_amplitude;
+        let tx_amplitude = super::constant::signal::TX_AMPLITUDE * sensor.tx_amplitude;
         let tx_t_start = -super::constant::signal::SIGMA_MULTIPLIER * sigma;
         let tx_t_end = super::constant::signal::SIGMA_MULTIPLIER * sigma;
         let tx_idx_start = ((tx_t_start - t_start) / dt_s) as usize;
@@ -215,16 +218,19 @@ pub fn synthesize_signal(
 
         for j in tx_idx_start..=tx_idx_end {
             let t = time_axis[j];
-            let diff = t; // t - t_tx where t_tx = 0
-            let env = (-diff * diff / (2.0 * sigma_sq)).exp();
-            let wave = env * (2.0 * std::f32::consts::PI * sensor.frequency * diff).cos();
-            signal[j] += wave * tx_amplitude;
+            let env = (-t * t / (2.0 * sigma_sq)).exp();
+            let phase = 2.0 * std::f32::consts::PI * f_tx * t;
+            i_signal[j] += env * phase.cos() * tx_amplitude;
+            q_signal[j] += env * phase.sin() * tx_amplitude;
         }
 
         for hit in sensor_hits.hits.iter() {
             let t_d = hit.delay;
             let f_r = hit.doppler_freq;
             let dist = hit.distance;
+
+            // Convert dB to linear voltage gain multiplier
+            let linear_gain = 10_f32.powf(sensor.gain_db / 20.0);
 
             // Physical distance attenuation: inverse square law scaled by gain and normalized by ray count.
             // Because each ray represents a fraction of the wavefront energy, the sum of the ray echoes
@@ -233,7 +239,7 @@ pub fn synthesize_signal(
                 * (super::constant::signal::ATTENUATION_REF_DIST
                 / dist.max(super::constant::signal::ATTENUATION_REF_DIST))
             .powi(2)
-                * sensor.gain
+                * linear_gain
                 / (sensor.ray_count as f32);
 
             // Sparse evaluation: within +/- 4 sigma
@@ -247,35 +253,22 @@ pub fn synthesize_signal(
                 let t = time_axis[j];
                 let diff = t - t_d;
                 let env = (-diff * diff / (2.0 * sigma_sq)).exp();
-                let wave = env * (2.0 * std::f32::consts::PI * f_r * diff).cos();
-                signal[j] += wave * atten;
+                let phase = 2.0 * std::f32::consts::PI * f_r * diff;
+                i_signal[j] += env * phase.cos() * atten;
+                q_signal[j] += env * phase.sin() * atten;
             }
         }
 
-        // 1. Zero-phase low-pass filter envelope detection
-        let mut envelope = vec![0.0; num_samples];
-        let alpha = super::constant::signal::ENVELOPE_LOWPASS_ALPHA; // Cutoff frequency (~2.5 kHz) to smooth out the 40 kHz carrier ripples
-
-        // Forward filter pass
-        let mut filter_state = 0.0;
+        // Mathematically perfect IQ Envelope Detection
+        // The true envelope is the magnitude of the complex analytic signal
+        let mut true_envelope = vec![0.0; num_samples];
         for j in 0..num_samples {
-            let rect_val = signal[j].abs();
-            filter_state = alpha * rect_val + (1.0 - alpha) * filter_state;
-            envelope[j] = filter_state;
-        }
-
-        // Backward filter pass for zero-phase alignment and double-stage smoothing
-        let mut smooth_envelope = vec![0.0; num_samples];
-        let mut filter_state_back = 0.0;
-        for j in (0..num_samples).rev() {
-            let val = envelope[j];
-            filter_state_back = alpha * val + (1.0 - alpha) * filter_state_back;
-            smooth_envelope[j] = filter_state_back * std::f32::consts::FRAC_PI_2; // Multiply by pi/2 to restore peak amplitude
+            true_envelope[j] = (i_signal[j] * i_signal[j] + q_signal[j] * q_signal[j]).sqrt();
         }
 
         ultrasonic_signal.time_axis = time_axis;
-        ultrasonic_signal.signal = signal;
-        ultrasonic_signal.envelope = smooth_envelope;
+        ultrasonic_signal.signal = i_signal;
+        ultrasonic_signal.envelope = true_envelope;
     }
 }
 
@@ -413,17 +406,21 @@ pub fn plot_sensor_signal(
             let x = get_x(dist);
 
             // Carrier Wave
-            let sig_val = signal[idx];
-            let y_sig = plot_center.y + sig_val * scale_y;
-            let sig_point = Vec2::new(x, y_sig);
+            if sensor.show_carrier_wave {
+                // Simulate ADC/Op-Amp voltage clipping (rails at -1.0 to 1.0)
+                let sig_val = signal[idx].clamp(-1.0, 1.0);
+                let y_sig = plot_center.y + sig_val * scale_y;
+                let sig_point = Vec2::new(x, y_sig);
 
-            if let Some(prev) = prev_sig_point {
-                gizmos.line_2d(prev, sig_point, signal_color);
+                if let Some(prev) = prev_sig_point {
+                    gizmos.line_2d(prev, sig_point, signal_color);
+                }
+                prev_sig_point = Some(sig_point);
             }
-            prev_sig_point = Some(sig_point);
 
             // Envelope Wave
-            let env_val = envelope[idx];
+            // Envelopes are generally positive, but we clamp between 0.0 and 1.0 (or -1.0 to 1.0)
+            let env_val = envelope[idx].clamp(-1.0, 1.0);
             let y_env = plot_center.y + env_val * scale_y;
             let env_point = Vec2::new(x, y_env);
 
@@ -433,44 +430,19 @@ pub fn plot_sensor_signal(
             prev_env_point = Some(env_point);
         }
 
-        // Draw Plot Titles and Legends (using correct text_2d alignment bounds)
-        gizmos.text_2d(
-            Vec2::new(
-                bottom_left.x,
-                top_right.y + 25.0,
-            ),
-            "Ultrasonic Echo Signal (Superposition)",
-            super::constant::plot::TITLE_SIZE,
-            Vec2::new(-0.5, 0.0), // Left aligned
-            Color::BLACK,
-        );
-        
-        let freq_text = format!(
-            "Tx Freq: {:.1} kHz | Rx Freq: {:.1} kHz",
-            sensor.frequency / 1000.0,
-            sensor.smoothed_rx_frequency / 1000.0
-        );
-        gizmos.text_2d(
-            Vec2::new(
-                bottom_left.x,
-                top_right.y + 8.0,
-            ),
-            &freq_text,
-            super::constant::plot::LEGEND_SIZE,
-            Vec2::new(-0.5, 0.0), // Left aligned
-            Color::BLACK,
-        );
-
-        gizmos.text_2d(
-            Vec2::new(
-                top_right.x - super::constant::plot::LEGEND_SPACING,
-                top_right.y + 25.0,
-            ),
-            "Carrier Wave",
-            super::constant::plot::LEGEND_SIZE,
-            Vec2::new(0.5, 0.0), // Right aligned relative to position
-            signal_color,
-        );
+        // Draw Plot Legends (using correct text_2d alignment bounds)
+        if sensor.show_carrier_wave {
+            gizmos.text_2d(
+                Vec2::new(
+                    top_right.x - super::constant::plot::LEGEND_SPACING,
+                    top_right.y + 25.0,
+                ),
+                "Carrier Wave",
+                super::constant::plot::LEGEND_SIZE,
+                Vec2::new(0.5, 0.0), // Right aligned relative to position
+                signal_color,
+            );
+        }
         gizmos.text_2d(
             Vec2::new(top_right.x, top_right.y + 25.0),
             "Envelope",
@@ -512,21 +484,26 @@ pub fn plot_sensor_signal(
 pub fn egui_settings_panel(
     mut contexts: bevy_egui::EguiContexts,
     mut sensor_query: Query<&mut component::UltrasonicSensor>,
+    mut reflector_query: Query<&mut crate::reflector::component::Reflector>,
 ) {
     let Ok(ctx) = contexts.ctx_mut() else { return };
 
-    if let Ok(mut sensor) = sensor_query.single_mut() {
+    if let Ok(mut sensor) = sensor_query.single_mut()
+        && let Ok(mut reflector) = reflector_query.single_mut()
+    {
         bevy_egui::egui::Window::new("Settings")
+            .anchor(bevy_egui::egui::Align2::RIGHT_TOP, bevy_egui::egui::vec2(-10.0, 10.0))
+            .default_open(false)
             .show(ctx, |ui| {
                 ui.add_space(20.0);
                 ui.heading("Settings");
                 ui.separator();
                 
                 ui.add_space(20.0);
-                ui.label("Gain (x)");
-                ui.add(bevy_egui::egui::DragValue::new(&mut sensor.gain)
-                    .range(super::constant::MIN_GAIN..=super::constant::MAX_GAIN)
-                    .speed(0.1));
+                ui.label("Gain (dB)");
+                ui.add(bevy_egui::egui::DragValue::new(&mut sensor.gain_db)
+                    .range(0.0..=100.0)
+                    .speed(0.5));
 
                 ui.add_space(10.0);
                 ui.label("TX Power Amplitude");
@@ -535,10 +512,22 @@ pub fn egui_settings_panel(
                     .speed(0.1));
 
                 ui.add_space(10.0);
-                ui.label("TX Frequency (Hz)");
-                ui.add(bevy_egui::egui::DragValue::new(&mut sensor.frequency)
-                    .range(10_000.0..=100_000.0)
-                    .speed(500.0));
+                ui.label("Pulse Width (ms)");
+                let mut pulse_ms = sensor.pulse_width * 1000.0;
+                if ui.add(bevy_egui::egui::DragValue::new(&mut pulse_ms)
+                    .range(0.01..=10.0)
+                    .speed(0.01)).changed() {
+                    sensor.pulse_width = pulse_ms / 1000.0;
+                }
+
+                ui.add_space(10.0);
+                ui.label("TX Frequency (kHz)");
+                let mut freq_khz = sensor.frequency / 1000.0;
+                if ui.add(bevy_egui::egui::DragValue::new(&mut freq_khz)
+                    .range(0.1..=100.0)
+                    .speed(0.5)).changed() {
+                    sensor.frequency = freq_khz * 1000.0;
+                }
 
                 ui.add_space(10.0);
                 ui.label("Doppler Exaggeration (x)");
@@ -552,7 +541,14 @@ pub fn egui_settings_panel(
                     sensor.speed_of_sound = (331.3 + 0.606 * sensor.temperature) * 1000.0;
                 }
                 ui.add_space(10.0);
+                ui.label("Reflector Speed (m/s)");
+                ui.add(bevy_egui::egui::DragValue::new(&mut reflector.speed)
+                    .range(0.1..=10.0)
+                    .speed(0.1));
+
+                ui.add_space(10.0);
                 ui.checkbox(&mut sensor.show_rays, "Show Sensor Rays");
+                ui.checkbox(&mut sensor.show_carrier_wave, "Show Carrier Wave");
             });
     }
 }
