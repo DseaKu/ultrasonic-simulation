@@ -160,6 +160,21 @@ pub fn collect_sensor_data(
             }
         }
 
+        if sensor.show_rx_frequency {
+            let mut drawn_labels = std::collections::HashSet::new();
+            for hit in sensor_hits.hits.iter() {
+                if drawn_labels.insert(hit.entity) {
+                    gizmos.text_2d(
+                        hit.point + Vec2::new(0.0, 100.0),
+                        &format!("Rx: {:.1} kHz", hit.doppler_freq / 1000.0),
+                        20.0,
+                        Vec2::new(0.0, 0.0), // Center anchor
+                        Color::srgb(0.0, 0.3, 0.8), // Deep Blue for high contrast on white/black
+                    );
+                }
+            }
+        }
+
         // Store history for the next frame
         hit_history.distances = next_history;
 
@@ -547,8 +562,9 @@ pub fn egui_settings_panel(
                     .speed(0.1));
 
                 ui.add_space(10.0);
-                ui.checkbox(&mut sensor.show_rays, "Show Sensor Rays");
+                ui.checkbox(&mut sensor.show_rays, "Show Ultrasonic Rays");
                 ui.checkbox(&mut sensor.show_carrier_wave, "Show Carrier Wave");
+                ui.checkbox(&mut sensor.show_rx_frequency, "Show Rx Frequency at Reflector");
             });
     }
 }

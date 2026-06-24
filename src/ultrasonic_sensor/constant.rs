@@ -16,6 +16,7 @@ pub mod defaults {
     pub const DOPPLER_EXAGGERATION: f32 = 0.0;
     pub const SHOW_RAYS: bool = false;
     pub const SHOW_CARRIER_WAVE: bool = false;
+    pub const SHOW_RX_FREQUENCY: bool = false;
     pub const TEMPERATURE: f32 = 20.0;
     pub const TX_AMPLITUDE: f32 = 1.0;
 }

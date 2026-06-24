@@ -15,6 +15,7 @@ pub struct UltrasonicSensor {
     pub doppler_exaggeration: f32,
     pub show_rays: bool,
     pub show_carrier_wave: bool,
+    pub show_rx_frequency: bool,
     pub temperature: f32,
     pub tx_amplitude: f32,
 }
@@ -33,6 +34,7 @@ impl UltrasonicSensor {
             doppler_exaggeration: constant::defaults::DOPPLER_EXAGGERATION,
             show_rays: constant::defaults::SHOW_RAYS,
             show_carrier_wave: constant::defaults::SHOW_CARRIER_WAVE,
+            show_rx_frequency: constant::defaults::SHOW_RX_FREQUENCY,
             temperature: constant::defaults::TEMPERATURE,
             tx_amplitude: constant::defaults::TX_AMPLITUDE,
         }
