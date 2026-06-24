@@ -4,11 +4,11 @@ pub const SPEED_OF_SOUND: f32 = 343_000.0;
 pub const MIN_DOPPLER_FACTOR: f32 = 0.25;
 pub const MAX_DOPPLER_FACTOR: f32 = 2.25;
 
-pub const DOPPLER_EXAGGERATION_STEP: f32 = 50.0;
+pub const DOPPLER_EXAGGERATION_RATE: f32 = 500.0;
 pub const MIN_DOPPLER_EXAGGERATION: f32 = 0.0;
 pub const MAX_DOPPLER_EXAGGERATION: f32 = 2000.0;
 
-pub const GAIN_STEP: f32 = 0.5;
+pub const GAIN_RATE: f32 = 5.0;
 pub const MIN_GAIN: f32 = 0.5;
 pub const MAX_GAIN: f32 = 20.0;
 

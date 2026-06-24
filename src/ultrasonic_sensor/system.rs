@@ -529,14 +529,16 @@ pub fn plot_sensor_signal(
 // System to dynamically adjust the sensor's amplification factor
 pub fn adjust_sensor_gain(
     keyboard: Res<ButtonInput<KeyCode>>,
+    time: Res<Time>,
     mut query: Query<&mut component::UltrasonicSensor>,
 ) {
+    let dt = time.delta_secs();
     for mut sensor in query.iter_mut() {
-        if keyboard.just_pressed(KeyCode::Equal) || keyboard.just_pressed(KeyCode::NumpadAdd) {
-            sensor.gain = (sensor.gain + super::constant::GAIN_STEP).min(super::constant::MAX_GAIN);
+        if keyboard.pressed(KeyCode::Equal) || keyboard.pressed(KeyCode::NumpadAdd) {
+            sensor.gain = (sensor.gain + super::constant::GAIN_RATE * dt).min(super::constant::MAX_GAIN);
         }
-        if keyboard.just_pressed(KeyCode::Minus) || keyboard.just_pressed(KeyCode::NumpadSubtract) {
-            sensor.gain = (sensor.gain - super::constant::GAIN_STEP).max(super::constant::MIN_GAIN);
+        if keyboard.pressed(KeyCode::Minus) || keyboard.pressed(KeyCode::NumpadSubtract) {
+            sensor.gain = (sensor.gain - super::constant::GAIN_RATE * dt).max(super::constant::MIN_GAIN);
         }
     }
 }
@@ -544,17 +546,19 @@ pub fn adjust_sensor_gain(
 // System to dynamically adjust the Doppler shift exaggeration factor
 pub fn adjust_doppler_exaggeration(
     keyboard: Res<ButtonInput<KeyCode>>,
+    time: Res<Time>,
     mut query: Query<&mut component::UltrasonicSensor>,
 ) {
+    let dt = time.delta_secs();
     for mut sensor in query.iter_mut() {
-        if keyboard.just_pressed(KeyCode::Comma) {
+        if keyboard.pressed(KeyCode::Comma) {
             sensor.doppler_exaggeration = (sensor.doppler_exaggeration
-                - super::constant::DOPPLER_EXAGGERATION_STEP)
+                - super::constant::DOPPLER_EXAGGERATION_RATE * dt)
                 .max(super::constant::MIN_DOPPLER_EXAGGERATION);
         }
-        if keyboard.just_pressed(KeyCode::Period) {
+        if keyboard.pressed(KeyCode::Period) {
             sensor.doppler_exaggeration = (sensor.doppler_exaggeration
-                + super::constant::DOPPLER_EXAGGERATION_STEP)
+                + super::constant::DOPPLER_EXAGGERATION_RATE * dt)
                 .min(super::constant::MAX_DOPPLER_EXAGGERATION);
         }
     }
