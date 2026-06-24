@@ -10,6 +10,7 @@ pub fn setup_sensor(mut commands: Commands, asset_server: Res<AssetServer>) {
 pub fn collect_sensor_data(
     spatial_query: SpatialQuery,
     time: Res<Time<Virtual>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
     mut query: Query<(
         &Transform,
         &mut component::UltrasonicSensor,
@@ -66,7 +67,12 @@ pub fn collect_sensor_data(
         return;
     }
 
-    let dt = time.delta_secs();
+    let mut target_velocity = 0.0;
+    if keyboard.pressed(KeyCode::ArrowLeft) || keyboard.pressed(KeyCode::KeyA) {
+        target_velocity = -500.0;
+    } else if keyboard.pressed(KeyCode::ArrowRight) || keyboard.pressed(KeyCode::KeyD) {
+        target_velocity = 500.0;
+    }
 
     for (transform, mut sensor, mut sensor_hits, mut hit_history) in query.iter_mut() {
         sensor_hits.hits.clear();
@@ -111,24 +117,15 @@ pub fn collect_sensor_data(
                 let d_current = hit.distance;
 
                 // 1. Relative Velocity (v)
-                let mut v = 0.0;
-                if dt > 0.0 {
-                    if let Some(&d_previous) = hit_history.distances.get(&(hit.entity, i)) {
-                        v = (d_current - d_previous) / dt;
-                    }
-                }
+                let v = target_velocity;
 
                 // 2. Time of Flight (t_delay)
                 let delay = (2.0 * d_current) / c;
 
-                // 3. Two-Way Doppler Shift (f_r) with 500x exaggeration to make it visible
-                let exaggerated_v = v * 500.0;
-                let denom = c + exaggerated_v;
-                let factor = if denom.abs() > 0.001 {
-                    ((c - exaggerated_v) / denom).clamp(0.25, 2.25)
-                } else {
-                    1.0
-                };
+                // 3. Two-Way Doppler Shift (f_r) with exaggeration to make it visible.
+                // Uses a linear approximation to avoid division singularities (sonic boom)
+                // when exaggerated velocity approaches or exceeds the speed of sound.
+                let factor = (1.0 - (2.0 * v * sensor.doppler_exaggeration) / c).clamp(0.25, 2.25);
                 let doppler_freq = f_t * factor;
 
                 sensor_hits.hits.push(component::RayHit {
@@ -495,15 +492,16 @@ pub fn plot_sensor_signal(
             env_color,
         );
 
-        // Display gain adjustment instructions and time scale
+        // Display gain, Doppler exaggeration, and time scale instructions
         let time_scale_text = if time.is_paused() {
             "Paused (Space)".to_string()
         } else {
             format!("{:.2}x ([/]/Space)", time.relative_speed())
         };
         let gain_text = format!(
-            "Gain: {:.1}x (+/-) | Time Scale: {}",
+            "Gain: {:.1}x (+/-) | Doppler: {:.0}x (</>) | Time Scale: {}",
             sensor.gain,
+            sensor.doppler_exaggeration,
             time_scale_text
         );
         gizmos.text_2d(
@@ -527,6 +525,21 @@ pub fn adjust_sensor_gain(
         }
         if keyboard.just_pressed(KeyCode::Minus) || keyboard.just_pressed(KeyCode::NumpadSubtract) {
             sensor.gain = (sensor.gain - 0.5).max(0.5);
+        }
+    }
+}
+
+// System to dynamically adjust the Doppler shift exaggeration factor
+pub fn adjust_doppler_exaggeration(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut query: Query<&mut component::UltrasonicSensor>,
+) {
+    for mut sensor in query.iter_mut() {
+        if keyboard.just_pressed(KeyCode::Comma) {
+            sensor.doppler_exaggeration = (sensor.doppler_exaggeration - 50.0).max(0.0);
+        }
+        if keyboard.just_pressed(KeyCode::Period) {
+            sensor.doppler_exaggeration = (sensor.doppler_exaggeration + 50.0).min(2000.0);
         }
     }
 }

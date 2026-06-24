@@ -12,6 +12,7 @@ pub struct UltrasonicSensor {
     pub max_range: f32,
     pub gain: f32,
     pub smoothed_rx_frequency: f32,
+    pub doppler_exaggeration: f32,
 }
 
 impl UltrasonicSensor {
@@ -25,6 +26,7 @@ impl UltrasonicSensor {
             max_range: 800.0,                 // Max distance the rays can travel
             gain: 1.0,                        // Default amplification factor
             smoothed_rx_frequency: constant::FREQUENCY_TRANSMITTED,
+            doppler_exaggeration: 300.0,
         }
     }
 }
