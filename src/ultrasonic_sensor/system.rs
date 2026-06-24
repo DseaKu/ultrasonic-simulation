@@ -617,7 +617,7 @@ pub fn setup_ui(mut commands: Commands) {
 
             spawn_row!(parent, "Gain: 1.0x", GainText, UiButton::GainDown, UiButton::GainUp);
             spawn_row!(parent, "Doppler: 0x", DopplerText, UiButton::DopplerDown, UiButton::DopplerUp);
-            spawn_row!(parent, "Temp: 20.0°C", TempText, UiButton::TempDown, UiButton::TempUp);
+            spawn_row!(parent, "Temp: 20.0 C", TempText, UiButton::TempDown, UiButton::TempUp);
         });
 }
 
@@ -635,7 +635,7 @@ pub fn update_ui_text(
             text.0 = format!("Doppler: {:.0}x", sensor.doppler_exaggeration);
         }
         if let Ok(mut text) = temp_text.single_mut() {
-            text.0 = format!("Temp: {:.1}°C", sensor.temperature);
+            text.0 = format!("Temp: {:.1} C", sensor.temperature);
         }
     }
 }
