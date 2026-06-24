@@ -561,7 +561,7 @@ pub fn setup_ui(mut commands: Commands) {
                 top: Val::Px(0.0),
                 bottom: Val::Px(0.0),
                 left: Val::Px(0.0),
-                width: Val::Px(320.0),
+                width: Val::Percent(16.666666),
                 flex_direction: FlexDirection::Column,
                 row_gap: Val::Px(20.0),
                 align_items: AlignItems::FlexStart,
@@ -596,31 +596,39 @@ pub fn setup_ui(mut commands: Commands) {
                 };
             }
 
-            macro_rules! spawn_row {
+            macro_rules! spawn_control_group {
                 ($p:expr, $label:expr, $marker:expr, $down_action:expr, $up_action:expr) => {
                     $p.spawn((Node { 
-                        flex_direction: FlexDirection::Row, 
-                        align_items: AlignItems::Center, 
-                        column_gap: Val::Px(5.0), 
+                        flex_direction: FlexDirection::Column, 
+                        align_items: AlignItems::FlexStart, 
+                        row_gap: Val::Px(5.0), 
                         ..default() 
                     },))
-                    .with_children(|row| {
-                        row.spawn((
+                    .with_children(|col| {
+                        col.spawn((
                             Text::new($label), 
                             TextFont { font_size: bevy::prelude::FontSize::Px(16.0), ..default() }, 
                             TextColor(Color::BLACK),
-                            Node { width: Val::Px(120.0), ..default() },
                             $marker,
                         ));
-                        spawn_btn!(row, "-", $down_action);
-                        spawn_btn!(row, "+", $up_action);
+                        
+                        col.spawn((Node { 
+                            flex_direction: FlexDirection::Row, 
+                            align_items: AlignItems::Center, 
+                            column_gap: Val::Px(10.0), 
+                            ..default() 
+                        },))
+                        .with_children(|row| {
+                            spawn_btn!(row, "-", $down_action);
+                            spawn_btn!(row, "+", $up_action);
+                        });
                     });
                 };
             }
 
-            spawn_row!(parent, "Gain: 1.0x", GainText, UiButton::GainDown, UiButton::GainUp);
-            spawn_row!(parent, "Doppler: 0x", DopplerText, UiButton::DopplerDown, UiButton::DopplerUp);
-            spawn_row!(parent, "Temp: 20.0 C", TempText, UiButton::TempDown, UiButton::TempUp);
+            spawn_control_group!(parent, "Gain: 1.0x", GainText, UiButton::GainDown, UiButton::GainUp);
+            spawn_control_group!(parent, "Doppler: 0x", DopplerText, UiButton::DopplerDown, UiButton::DopplerUp);
+            spawn_control_group!(parent, "Temp: 20.0 C", TempText, UiButton::TempDown, UiButton::TempUp);
         });
 }
 

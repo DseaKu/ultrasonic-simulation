@@ -53,8 +53,8 @@ fn update_camera_viewports(
         return;
     }
     
-    let ui_width = 320; // Fixed 320px width for the UI pane
-    let view_width = physical_width.saturating_sub(ui_width);
+    let ui_width = physical_width / 6; // ~16.6% of the screen for the UI pane
+    let view_width = physical_width - ui_width;
     let half_height = physical_height / 2;
     
     let sim_pos = UVec2::new(ui_width, 0);
