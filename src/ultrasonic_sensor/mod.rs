@@ -8,11 +8,11 @@ mod system;
 pub struct UltrasonicSensorPlugin;
 impl Plugin for UltrasonicSensorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (system::setup_sensor, system::setup_time_scale))
+        app.add_systems(Startup, system::setup_sensor)
             .add_systems(
                 Update,
                 (
-                    system::adjust_time_scale,
+                    system::toggle_pause,
                     system::adjust_sensor_gain,
                     system::adjust_doppler_exaggeration,
                     system::toggle_rays,

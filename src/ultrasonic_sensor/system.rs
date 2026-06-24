@@ -277,27 +277,13 @@ pub fn synthesize_signal(
     }
 }
 
-pub fn setup_time_scale(mut time: ResMut<Time<Virtual>>) {
-    time.set_relative_speed(super::constant::DEFAULT_TIME_SCALE);
-}
-
-pub fn adjust_time_scale(keyboard: Res<ButtonInput<KeyCode>>, mut time: ResMut<Time<Virtual>>) {
+pub fn toggle_pause(keyboard: Res<ButtonInput<KeyCode>>, mut time: ResMut<Time<Virtual>>) {
     if keyboard.just_pressed(KeyCode::Space) {
         if time.is_paused() {
             time.unpause();
         } else {
             time.pause();
         }
-    }
-
-    let mut speed = time.relative_speed();
-    if keyboard.just_pressed(KeyCode::BracketLeft) {
-        speed = (speed - super::constant::TIME_SCALE_STEP).max(super::constant::MIN_TIME_SCALE);
-        time.set_relative_speed(speed);
-    }
-    if keyboard.just_pressed(KeyCode::BracketRight) {
-        speed = (speed + super::constant::TIME_SCALE_STEP).min(super::constant::MAX_TIME_SCALE);
-        time.set_relative_speed(speed);
     }
 }
 
@@ -464,25 +450,14 @@ pub fn plot_sensor_signal(
         gizmos.text_2d(
             Vec2::new(
                 bottom_left.x,
-                top_right.y + super::constant::plot::MARGIN_Y,
+                top_right.y + 25.0,
             ),
             "Ultrasonic Echo Signal (Superposition)",
             super::constant::plot::TITLE_SIZE,
             Vec2::new(-0.5, 0.0), // Left aligned
             Color::BLACK,
         );
-        gizmos.text_2d(
-            Vec2::new(
-                plot_center.x,
-                bottom_left.y - super::constant::plot::LABEL_OFFSET_Y,
-            ),
-            "Distance (mm)",
-            super::constant::plot::AXIS_LABEL_SIZE,
-            Vec2::ZERO, // Centered
-            border_color,
-        );
-
-        // Draw live Tx/Rx frequency readouts to demonstrate Doppler shift numerically
+        
         let freq_text = format!(
             "Tx Freq: {:.1} kHz | Rx Freq: {:.1} kHz",
             sensor.frequency / 1000.0,
@@ -490,19 +465,19 @@ pub fn plot_sensor_signal(
         );
         gizmos.text_2d(
             Vec2::new(
-                plot_center.x + super::constant::plot::FREQ_LABEL_OFFSET_X,
-                top_right.y + super::constant::plot::MARGIN_Y,
+                bottom_left.x,
+                top_right.y + 8.0,
             ),
             &freq_text,
             super::constant::plot::LEGEND_SIZE,
-            Vec2::ZERO, // Centered
+            Vec2::new(-0.5, 0.0), // Left aligned
             Color::BLACK,
         );
 
         gizmos.text_2d(
             Vec2::new(
                 top_right.x - super::constant::plot::LEGEND_SPACING,
-                top_right.y + super::constant::plot::MARGIN_Y,
+                top_right.y + 25.0,
             ),
             "Carrier Wave",
             super::constant::plot::LEGEND_SIZE,
@@ -510,31 +485,42 @@ pub fn plot_sensor_signal(
             signal_color,
         );
         gizmos.text_2d(
-            Vec2::new(top_right.x, top_right.y + super::constant::plot::MARGIN_Y),
+            Vec2::new(top_right.x, top_right.y + 25.0),
             "Envelope",
             super::constant::plot::LEGEND_SIZE,
             Vec2::new(0.5, 0.0), // Right aligned relative to position
             env_color,
         );
 
-        // Display gain, Doppler exaggeration, and time scale instructions
-        let time_scale_text = if time.is_paused() {
-            "Paused (Space)".to_string()
+        gizmos.text_2d(
+            Vec2::new(
+                plot_center.x,
+                bottom_left.y - 35.0,
+            ),
+            "Distance (mm)",
+            super::constant::plot::AXIS_LABEL_SIZE,
+            Vec2::ZERO, // Centered
+            border_color,
+        );
+
+        // Display gain and Doppler exaggeration instructions
+        let pause_text = if time.is_paused() {
+            "Paused (Space)"
         } else {
-            format!("{:.2}x ([/]/Space)", time.relative_speed())
+            "Running (Space)"
         };
         let gain_text = format!(
-            "Gain: {:.1}x (+/-) | Doppler: {:.0}x (</>) | Time Scale: {}",
-            sensor.gain, sensor.doppler_exaggeration, time_scale_text
+            "Gain: {:.1}x (+/-) | Doppler: {:.0}x (</>) | {}",
+            sensor.gain, sensor.doppler_exaggeration, pause_text
         );
         gizmos.text_2d(
             Vec2::new(
-                bottom_left.x,
-                bottom_left.y - super::constant::plot::LABEL_OFFSET_Y,
+                plot_center.x,
+                bottom_left.y - 55.0,
             ),
             &gain_text,
             super::constant::plot::INSTRUCTION_SIZE,
-            Vec2::new(-0.5, 0.0), // Left aligned
+            Vec2::ZERO, // Centered
             Color::BLACK,
         );
     }

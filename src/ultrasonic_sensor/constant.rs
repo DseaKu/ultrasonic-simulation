@@ -8,11 +8,6 @@ pub const DOPPLER_EXAGGERATION_STEP: f32 = 50.0;
 pub const MIN_DOPPLER_EXAGGERATION: f32 = 0.0;
 pub const MAX_DOPPLER_EXAGGERATION: f32 = 2000.0;
 
-pub const TIME_SCALE_STEP: f32 = 0.05;
-pub const MIN_TIME_SCALE: f32 = 0.05;
-pub const MAX_TIME_SCALE: f32 = 2.0;
-pub const DEFAULT_TIME_SCALE: f32 = 0.2;
-
 pub const GAIN_STEP: f32 = 0.5;
 pub const MIN_GAIN: f32 = 0.5;
 pub const MAX_GAIN: f32 = 20.0;
@@ -44,9 +39,6 @@ pub mod plot {
     pub const LEGEND_SIZE: f32 = 12.0;
     pub const INSTRUCTION_SIZE: f32 = 12.0;
 
-    pub const MARGIN_Y: f32 = 10.0;
-    pub const LABEL_OFFSET_Y: f32 = 35.0;
-    pub const FREQ_LABEL_OFFSET_X: f32 = 130.0;
     pub const LEGEND_SPACING: f32 = 100.0;
 }
 
