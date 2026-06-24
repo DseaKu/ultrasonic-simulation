@@ -525,176 +525,39 @@ pub fn plot_sensor_signal(
     }
 }
 
-#[derive(Component)]
-pub struct GainText;
-#[derive(Component)]
-pub struct DopplerText;
-#[derive(Component)]
-pub struct TempText;
-
-#[derive(Component)]
-pub enum UiButton {
-    GainUp,
-    GainDown,
-    DopplerUp,
-    DopplerDown,
-    TempUp,
-    TempDown,
-}
-
-pub fn setup_ui(mut commands: Commands) {
-    let ui_camera = commands.spawn((
-        Camera2d,
-        Camera {
-            order: 2,
-            clear_color: bevy::prelude::ClearColorConfig::None,
-            ..default()
-        },
-        Transform::from_xyz(0.0, -10000.0, 0.0),
-    )).id();
-
-    commands
-        .spawn((
-            bevy::ui::UiTargetCamera(ui_camera),
-            Node {
-                position_type: PositionType::Absolute,
-                top: Val::Px(0.0),
-                bottom: Val::Px(0.0),
-                left: Val::Px(0.0),
-                width: Val::Percent(16.666666),
-                flex_direction: FlexDirection::Column,
-                row_gap: Val::Px(20.0),
-                align_items: AlignItems::FlexStart,
-                padding: UiRect::all(Val::Px(20.0)),
-                ..default()
-            },
-            BackgroundColor(Color::srgb(0.95, 0.95, 0.95)), // Subtle gray to differentiate from the white plot
-        ))
-        .with_children(|parent| {
-            macro_rules! spawn_btn {
-                ($p:expr, $label:expr, $action:expr) => {
-                    $p.spawn((
-                        Button,
-                        Node {
-                            width: Val::Px(30.0),
-                            height: Val::Px(30.0),
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
-                            ..default()
-                        },
-                        BackgroundColor(Color::srgb(0.8, 0.8, 0.8)),
-                        $action,
-                    ))
-                    .with_child((
-                        Text::new($label),
-                        TextFont {
-                            font_size: bevy::prelude::FontSize::Px(20.0),
-                            ..default()
-                        },
-                        TextColor(Color::BLACK),
-                    ));
-                };
-            }
-
-            macro_rules! spawn_control_group {
-                ($p:expr, $label:expr, $marker:expr, $down_action:expr, $up_action:expr) => {
-                    $p.spawn((Node { 
-                        flex_direction: FlexDirection::Column, 
-                        align_items: AlignItems::FlexStart, 
-                        row_gap: Val::Px(5.0), 
-                        ..default() 
-                    },))
-                    .with_children(|col| {
-                        col.spawn((
-                            Text::new($label), 
-                            TextFont { font_size: bevy::prelude::FontSize::Px(16.0), ..default() }, 
-                            TextColor(Color::BLACK),
-                            $marker,
-                        ));
-                        
-                        col.spawn((Node { 
-                            flex_direction: FlexDirection::Row, 
-                            align_items: AlignItems::Center, 
-                            column_gap: Val::Px(10.0), 
-                            ..default() 
-                        },))
-                        .with_children(|row| {
-                            spawn_btn!(row, "-", $down_action);
-                            spawn_btn!(row, "+", $up_action);
-                        });
-                    });
-                };
-            }
-
-            spawn_control_group!(parent, "Gain: 1.0x", GainText, UiButton::GainDown, UiButton::GainUp);
-            spawn_control_group!(parent, "Doppler: 0x", DopplerText, UiButton::DopplerDown, UiButton::DopplerUp);
-            spawn_control_group!(parent, "Temp: 20.0 C", TempText, UiButton::TempDown, UiButton::TempUp);
-        });
-}
-
-pub fn update_ui_text(
-    sensor_query: Query<&component::UltrasonicSensor>,
-    mut gain_text: Query<&mut Text, (With<GainText>, Without<DopplerText>, Without<TempText>)>,
-    mut doppler_text: Query<&mut Text, (With<DopplerText>, Without<GainText>, Without<TempText>)>,
-    mut temp_text: Query<&mut Text, (With<TempText>, Without<GainText>, Without<DopplerText>)>,
-) {
-    if let Ok(sensor) = sensor_query.single() {
-        if let Ok(mut text) = gain_text.single_mut() {
-            text.0 = format!("Gain: {:.1}x", sensor.gain);
-        }
-        if let Ok(mut text) = doppler_text.single_mut() {
-            text.0 = format!("Doppler: {:.0}x", sensor.doppler_exaggeration);
-        }
-        if let Ok(mut text) = temp_text.single_mut() {
-            text.0 = format!("Temp: {:.1} C", sensor.temperature);
-        }
-    }
-}
-
-pub fn handle_ui_interactions(
-    interaction_query: Query<(&Interaction, &UiButton), With<Button>>,
-    time: Res<Time>,
+pub fn egui_settings_panel(
+    mut contexts: bevy_egui::EguiContexts,
     mut sensor_query: Query<&mut component::UltrasonicSensor>,
 ) {
-    let dt = time.delta_secs();
-    
-    for (interaction, button) in &interaction_query {
-        if *interaction == Interaction::Pressed {
-            for mut sensor in sensor_query.iter_mut() {
-                match button {
-                    UiButton::GainUp => {
-                        sensor.gain = (sensor.gain + super::constant::GAIN_STEP * 10.0 * dt).min(super::constant::MAX_GAIN);
-                    }
-                    UiButton::GainDown => {
-                        sensor.gain = (sensor.gain - super::constant::GAIN_STEP * 10.0 * dt).max(super::constant::MIN_GAIN);
-                    }
-                    UiButton::DopplerUp => {
-                        sensor.doppler_exaggeration = (sensor.doppler_exaggeration + super::constant::DOPPLER_EXAGGERATION_STEP * 10.0 * dt).min(super::constant::MAX_DOPPLER_EXAGGERATION);
-                    }
-                    UiButton::DopplerDown => {
-                        sensor.doppler_exaggeration = (sensor.doppler_exaggeration - super::constant::DOPPLER_EXAGGERATION_STEP * 10.0 * dt).max(super::constant::MIN_DOPPLER_EXAGGERATION);
-                    }
-                    UiButton::TempUp => {
-                        sensor.temperature += 20.0 * dt;
-                        sensor.speed_of_sound = (331.3 + 0.606 * sensor.temperature) * 1000.0;
-                    }
-                    UiButton::TempDown => {
-                        sensor.temperature -= 20.0 * dt;
-                        sensor.speed_of_sound = (331.3 + 0.606 * sensor.temperature) * 1000.0;
-                    }
-                }
-            }
-        }
-    }
-}
+    let Ok(ctx) = contexts.ctx_mut() else { return };
 
-pub fn toggle_rays(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut query: Query<&mut component::UltrasonicSensor>,
-) {
-    if keyboard.just_pressed(KeyCode::Digit1) {
-        for mut sensor in query.iter_mut() {
-            sensor.show_rays = !sensor.show_rays;
-        }
+    if let Ok(mut sensor) = sensor_query.single_mut() {
+        bevy_egui::egui::Window::new("Settings")
+            .show(ctx, |ui| {
+                ui.add_space(20.0);
+                ui.heading("Settings");
+                ui.separator();
+                
+                ui.add_space(20.0);
+                ui.label("Gain (x)");
+                // DragValue acts as a textbox when clicked!
+                ui.add(bevy_egui::egui::DragValue::new(&mut sensor.gain)
+                    .range(super::constant::MIN_GAIN..=super::constant::MAX_GAIN)
+                    .speed(0.1));
+
+                ui.add_space(10.0);
+                ui.label("Doppler Exaggeration (x)");
+                ui.add(bevy_egui::egui::DragValue::new(&mut sensor.doppler_exaggeration)
+                    .range(super::constant::MIN_DOPPLER_EXAGGERATION..=super::constant::MAX_DOPPLER_EXAGGERATION)
+                    .speed(10.0));
+
+                ui.add_space(10.0);
+                ui.label("Temperature (C)");
+                if ui.add(bevy_egui::egui::DragValue::new(&mut sensor.temperature).speed(0.5)).changed() {
+                    sensor.speed_of_sound = (331.3 + 0.606 * sensor.temperature) * 1000.0;
+                }
+                ui.add_space(10.0);
+                ui.checkbox(&mut sensor.show_rays, "Show Sensor Rays");
+            });
     }
 }

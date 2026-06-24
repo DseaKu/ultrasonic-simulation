@@ -32,10 +32,22 @@ fn setup_camera(mut commands: Commands) {
         Camera2d,
         Camera {
             order: 1,
+            clear_color: bevy::prelude::ClearColorConfig::None,
             ..default()
         },
         Transform::from_xyz(0.0, -5000.0, 0.0), // Look at plot
         PlotCamera,
+    ));
+
+    // Full window UI camera for Egui to attach to (highest order, no viewport)
+    commands.spawn((
+        Camera2d,
+        Camera {
+            order: 2,
+            clear_color: bevy::prelude::ClearColorConfig::None,
+            ..default()
+        },
+        Transform::from_xyz(0.0, -10000.0, 0.0), // Look away from everything
     ));
 }
 
@@ -53,12 +65,10 @@ fn update_camera_viewports(
         return;
     }
     
-    let ui_width = physical_width / 6; // ~16.6% of the screen for the UI pane
-    let view_width = physical_width - ui_width;
     let half_height = physical_height / 2;
     
-    let sim_pos = UVec2::new(ui_width, 0);
-    let sim_size = UVec2::new(view_width, half_height);
+    let sim_pos = UVec2::new(0, 0);
+    let sim_size = UVec2::new(physical_width, half_height);
 
     if let Ok(mut cam) = sim_cam.single_mut() {
         let needs_update = match &cam.viewport {
@@ -75,8 +85,8 @@ fn update_camera_viewports(
     }
     
     // Lower Pane Viewport
-    let plot_pos = UVec2::new(ui_width, half_height);
-    let plot_size = UVec2::new(view_width, physical_height - half_height);
+    let plot_pos = UVec2::new(0, half_height);
+    let plot_size = UVec2::new(physical_width, physical_height - half_height);
 
     if let Ok(mut cam) = plot_cam.single_mut() {
         let needs_update = match &cam.viewport {
