@@ -54,13 +54,17 @@ pub fn collect_sensor_data(
                     &SpatialQueryFilter::default(),
                 ) {
                     let hit_point = origin + ray_direction * hit.distance;
-                    gizmos.line_2d(origin, hit_point, hit_color);
+                    if sensor.show_rays {
+                        gizmos.line_2d(origin, hit_point, hit_color);
+                    }
                 } else {
-                    gizmos.line_2d(
-                        origin,
-                        origin + ray_direction * sensor.max_range,
-                        miss_color,
-                    );
+                    if sensor.show_rays {
+                        gizmos.line_2d(
+                            origin,
+                            origin + ray_direction * sensor.max_range,
+                            miss_color,
+                        );
+                    }
                 }
             }
         }
@@ -141,14 +145,18 @@ pub fn collect_sensor_data(
                 next_history.insert((hit.entity, i), d_current);
 
                 // Draw a cyan line to the hit point
-                gizmos.line_2d(origin, hit_point, hit_color);
+                if sensor.show_rays {
+                    gizmos.line_2d(origin, hit_point, hit_color);
+                }
             } else {
                 // Draw a dim gray line representing the ray's path in the air
-                gizmos.line_2d(
-                    origin,
-                    origin + ray_direction * sensor.max_range,
-                    miss_color,
-                );
+                if sensor.show_rays {
+                    gizmos.line_2d(
+                        origin,
+                        origin + ray_direction * sensor.max_range,
+                        miss_color,
+                    );
+                }
             }
         }
 
@@ -562,6 +570,17 @@ pub fn adjust_doppler_exaggeration(
             sensor.doppler_exaggeration = (sensor.doppler_exaggeration
                 + super::constant::DOPPLER_EXAGGERATION_STEP)
                 .min(super::constant::MAX_DOPPLER_EXAGGERATION);
+        }
+    }
+}
+
+pub fn toggle_rays(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut query: Query<&mut component::UltrasonicSensor>,
+) {
+    if keyboard.just_pressed(KeyCode::Digit1) {
+        for mut sensor in query.iter_mut() {
+            sensor.show_rays = !sensor.show_rays;
         }
     }
 }

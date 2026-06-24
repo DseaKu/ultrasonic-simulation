@@ -1,5 +1,5 @@
 pub const SPEED: f32 = 500.0;
-pub const ACCELERATION_FACTOR: f32 = 55.0;
+pub const ACCELERATION_FACTOR: f32 = 85.0;
 
 pub mod bounds {
     pub const MIN_X: f32 = -250.0;

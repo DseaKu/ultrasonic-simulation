@@ -13,6 +13,7 @@ pub struct UltrasonicSensor {
     pub gain: f32,
     pub smoothed_rx_frequency: f32,
     pub doppler_exaggeration: f32,
+    pub show_rays: bool,
 }
 
 impl UltrasonicSensor {
@@ -27,6 +28,7 @@ impl UltrasonicSensor {
             gain: 1.0,                        // Default amplification factor
             smoothed_rx_frequency: constant::FREQUENCY_TRANSMITTED,
             doppler_exaggeration: 300.0,
+            show_rays: false,
         }
     }
 }
