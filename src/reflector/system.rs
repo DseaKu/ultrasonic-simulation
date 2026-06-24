@@ -24,13 +24,13 @@ pub fn move_reflector(
             input_direction.x += 1.0;
         }
 
-        // Y-axis: W/S keys
-        if keyboard.pressed(KeyCode::KeyW) {
-            input_direction.y += 1.0;
-        }
-        if keyboard.pressed(KeyCode::KeyS) {
-            input_direction.y -= 1.0;
-        }
+        // // Y-axis: W/S keys
+        // if keyboard.pressed(KeyCode::KeyW) {
+        //     input_direction.y += 1.0;
+        // }
+        // if keyboard.pressed(KeyCode::KeyS) {
+        //     input_direction.y -= 1.0;
+        // }
 
         let speed_mm_s = reflector.speed * 1000.0;
         let target_velocity = input_direction.normalize_or_zero() * speed_mm_s;
@@ -55,5 +55,3 @@ pub fn move_reflector(
         );
     }
 }
-
-

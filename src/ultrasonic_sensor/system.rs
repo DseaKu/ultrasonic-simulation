@@ -67,6 +67,15 @@ pub fn collect_sensor_data(
                     }
                 }
             }
+            if sensor.show_rx_frequency {
+                gizmos.text_2d(
+                    Vec2::new(0.0, 300.0), // Fixed position high above the simulation area
+                    &format!("Received Frequency: {:.2} kHz", sensor.smoothed_rx_frequency / 1000.0),
+                    24.0,
+                    Vec2::new(0.0, 0.0),
+                    Color::BLACK,
+                );
+            }
         }
         return;
     }
@@ -160,20 +169,7 @@ pub fn collect_sensor_data(
             }
         }
 
-        if sensor.show_rx_frequency {
-            let mut drawn_labels = std::collections::HashSet::new();
-            for hit in sensor_hits.hits.iter() {
-                if drawn_labels.insert(hit.entity) {
-                    gizmos.text_2d(
-                        hit.point + Vec2::new(0.0, 100.0),
-                        &format!("Rx: {:.1} kHz", hit.doppler_freq / 1000.0),
-                        20.0,
-                        Vec2::new(0.0, 0.0), // Center anchor
-                        Color::srgb(0.0, 0.3, 0.8), // Deep Blue for high contrast on white/black
-                    );
-                }
-            }
-        }
+
 
         // Store history for the next frame
         hit_history.distances = next_history;
@@ -189,6 +185,16 @@ pub fn collect_sensor_data(
         let alpha = super::constant::signal::DOPPLER_SMOOTHING_ALPHA;
         sensor.smoothed_rx_frequency =
             sensor.smoothed_rx_frequency + alpha * (avg_doppler - sensor.smoothed_rx_frequency);
+
+        if sensor.show_rx_frequency {
+            gizmos.text_2d(
+                Vec2::new(0.0, 300.0), // Fixed position high above the simulation area
+                &format!("Received Frequency: {:.2} kHz", sensor.smoothed_rx_frequency / 1000.0),
+                24.0,
+                Vec2::new(0.0, 0.0),
+                Color::BLACK,
+            );
+        }
     }
 }
 
@@ -347,10 +353,13 @@ pub fn plot_sensor_signal(
             border_color,
         );
 
+        // Shift the 0-amplitude axis down slightly to give more room for positive envelope peaks
+        let zero_y = plot_center.y - half_h * 0.4;
+
         // Center line (zero amplitude)
         gizmos.line_2d(
-            Vec2::new(bottom_left.x, plot_center.y),
-            Vec2::new(top_right.x, plot_center.y),
+            Vec2::new(bottom_left.x, zero_y),
+            Vec2::new(top_right.x, zero_y),
             grid_color,
         );
 
@@ -422,9 +431,9 @@ pub fn plot_sensor_signal(
 
             // Carrier Wave
             if sensor.show_carrier_wave {
-                // Simulate ADC/Op-Amp voltage clipping (rails at -1.0 to 1.0)
-                let sig_val = signal[idx].clamp(-1.0, 1.0);
-                let y_sig = plot_center.y + sig_val * scale_y;
+                // Simulate ADC/Op-Amp voltage clipping relative to new zero axis
+                let sig_val = signal[idx].clamp(-0.6, 1.4);
+                let y_sig = zero_y + sig_val * scale_y;
                 let sig_point = Vec2::new(x, y_sig);
 
                 if let Some(prev) = prev_sig_point {
@@ -434,9 +443,9 @@ pub fn plot_sensor_signal(
             }
 
             // Envelope Wave
-            // Envelopes are generally positive, but we clamp between 0.0 and 1.0 (or -1.0 to 1.0)
-            let env_val = envelope[idx].clamp(-1.0, 1.0);
-            let y_env = plot_center.y + env_val * scale_y;
+            // Clamped to match the shifted plot boundaries
+            let env_val = envelope[idx].clamp(-0.6, 1.4);
+            let y_env = zero_y + env_val * scale_y;
             let env_point = Vec2::new(x, y_env);
 
             if let Some(prev) = prev_env_point {
