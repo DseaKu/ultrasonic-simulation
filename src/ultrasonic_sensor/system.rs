@@ -191,8 +191,9 @@ pub fn synthesize_signal(
         let min_dist = super::constant::signal::MIN_DISTANCE; // Start at negative distance to show full transmitted pulse
         let max_dist = sensor.max_range;
 
-        let t_start = 2.0 * min_dist / sensor.speed_of_sound;
-        let t_end = 2.0 * max_dist / sensor.speed_of_sound;
+        let assumed_c = super::constant::SPEED_OF_SOUND;
+        let t_start = 2.0 * min_dist / assumed_c;
+        let t_end = 2.0 * max_dist / assumed_c;
         let t_span = t_end - t_start;
         let num_samples = (t_span / dt_s).ceil() as usize;
 
@@ -420,9 +421,11 @@ pub fn plot_sensor_signal(
         let mut prev_sig_point: Option<Vec2> = None;
         let mut prev_env_point: Option<Vec2> = None;
 
+        let assumed_c = super::constant::SPEED_OF_SOUND;
         for idx in (0..num_samples).step_by(step) {
             let t = time_axis[idx];
-            let dist = t * sensor.speed_of_sound / 2.0;
+            // The plot maps time back to distance using the sensor's assumed speed of sound
+            let dist = t * assumed_c / 2.0;
             let x = get_x(dist);
 
             // Carrier Wave
