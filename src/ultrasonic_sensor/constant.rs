@@ -1,4 +1,4 @@
-pub const FREQUENCY_TRANSMITTED: f32 = 12_000.0;
+pub const FREQUENCY_TRANSMITTED: f32 = 40_000.0;
 pub const SPEED_OF_SOUND: f32 = 343_000.0;
 
 pub const MIN_DOPPLER_FACTOR: f32 = 0.25;
@@ -38,12 +38,12 @@ pub mod plot {
     pub const NUM_TICKS: usize = 8;
     pub const TICK_SPACING: usize = 100;
     pub const DOWNSAMPLE_TARGET: usize = 1000;
-    
+
     pub const TITLE_SIZE: f32 = 14.0;
     pub const AXIS_LABEL_SIZE: f32 = 13.0;
     pub const LEGEND_SIZE: f32 = 12.0;
     pub const INSTRUCTION_SIZE: f32 = 12.0;
-    
+
     pub const MARGIN_Y: f32 = 10.0;
     pub const LABEL_OFFSET_Y: f32 = 35.0;
     pub const FREQ_LABEL_OFFSET_X: f32 = 130.0;

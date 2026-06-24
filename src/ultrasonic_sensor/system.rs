@@ -200,7 +200,7 @@ pub fn synthesize_signal(
         let sigma_sq = sigma * sigma;
 
         // Synthesize the transmitted pulse ("main bang") centered at t = 0 (amplitude normalized to 1.0)
-        let tx_amplitude = super::constant::signal::TX_AMPLITUDE * sensor.gain;
+        let tx_amplitude = super::constant::signal::TX_AMPLITUDE;
         let tx_t_start = -super::constant::signal::SIGMA_MULTIPLIER * sigma;
         let tx_t_end = super::constant::signal::SIGMA_MULTIPLIER * sigma;
         let tx_idx_start = ((tx_t_start - t_start) / dt_s) as usize;
