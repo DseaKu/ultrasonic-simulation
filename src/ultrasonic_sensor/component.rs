@@ -14,6 +14,7 @@ pub struct UltrasonicSensor {
     pub smoothed_rx_frequency: f32,
     pub doppler_exaggeration: f32,
     pub show_rays: bool,
+    pub temperature: f32,
 }
 
 impl UltrasonicSensor {
@@ -29,6 +30,7 @@ impl UltrasonicSensor {
             smoothed_rx_frequency: constant::FREQUENCY_TRANSMITTED,
             doppler_exaggeration: 0.0,
             show_rays: false,
+            temperature: 20.0,
         }
     }
 }

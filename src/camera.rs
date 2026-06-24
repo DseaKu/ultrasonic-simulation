@@ -53,10 +53,12 @@ fn update_camera_viewports(
         return;
     }
     
+    let ui_width = 320; // Fixed 320px width for the UI pane
+    let view_width = physical_width.saturating_sub(ui_width);
     let half_height = physical_height / 2;
     
-    let sim_pos = UVec2::new(0, 0);
-    let sim_size = UVec2::new(physical_width, half_height);
+    let sim_pos = UVec2::new(ui_width, 0);
+    let sim_size = UVec2::new(view_width, half_height);
 
     if let Ok(mut cam) = sim_cam.single_mut() {
         let needs_update = match &cam.viewport {
@@ -73,8 +75,8 @@ fn update_camera_viewports(
     }
     
     // Lower Pane Viewport
-    let plot_pos = UVec2::new(0, half_height);
-    let plot_size = UVec2::new(physical_width, physical_height - half_height);
+    let plot_pos = UVec2::new(ui_width, half_height);
+    let plot_size = UVec2::new(view_width, physical_height - half_height);
 
     if let Ok(mut cam) = plot_cam.single_mut() {
         let needs_update = match &cam.viewport {
