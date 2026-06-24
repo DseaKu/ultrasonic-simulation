@@ -391,8 +391,8 @@ pub fn plot_sensor_signal(
                 border_color,
             );
 
-            // Tick label (distance in mm/units)
-            let label = format!("{}", dist as i32);
+            // Tick label (distance in meters, unitless numbers)
+            let label = format!("{:.1}", dist / 1000.0);
             gizmos.text_2d(
                 Vec2::new(x, bottom_left.y - super::constant::plot::TICK_LABEL_OFFSET),
                 &label,
@@ -480,28 +480,22 @@ pub fn plot_sensor_signal(
                 plot_center.x,
                 bottom_left.y - 35.0,
             ),
-            "Distance (mm)",
+            "Distance (m) →",
             super::constant::plot::AXIS_LABEL_SIZE,
             Vec2::ZERO, // Centered
             border_color,
         );
 
-        // Display gain and Doppler exaggeration instructions
-        let pause_text = if time.is_paused() {
-            "Paused (Space)"
-        } else {
-            "Running (Space)"
-        };
-        gizmos.text_2d(
-            Vec2::new(
-                plot_center.x,
-                bottom_left.y - 55.0,
-            ),
-            pause_text,
-            super::constant::plot::INSTRUCTION_SIZE,
-            Vec2::ZERO, // Centered
-            Color::BLACK,
-        );
+        // Display paused state at top left
+        if time.is_paused() {
+            gizmos.text_2d(
+                Vec2::new(bottom_left.x, top_right.y + 25.0),
+                "PAUSED",
+                super::constant::plot::INSTRUCTION_SIZE,
+                Vec2::new(0.0, 0.0), // Left aligned
+                Color::srgb(1.0, 0.2, 0.2), // Red so it's obvious
+            );
+        }
     }
 }
 
