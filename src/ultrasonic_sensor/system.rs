@@ -69,6 +69,13 @@ pub fn collect_sensor_data(
             }
             if sensor.show_rx_frequency {
                 gizmos.text_2d(
+                    Vec2::new(0.0, 330.0),
+                    &format!("Transmitted Frequency: {:.2} kHz", sensor.frequency / 1000.0),
+                    24.0,
+                    Vec2::new(0.0, 0.0),
+                    Color::BLACK,
+                );
+                gizmos.text_2d(
                     Vec2::new(0.0, 300.0), // Fixed position high above the simulation area
                     &format!("Received Frequency: {:.2} kHz", sensor.smoothed_rx_frequency / 1000.0),
                     24.0,
@@ -188,6 +195,13 @@ pub fn collect_sensor_data(
 
         if sensor.show_rx_frequency {
             gizmos.text_2d(
+                Vec2::new(0.0, 330.0),
+                &format!("Transmitted Frequency: {:.2} kHz", sensor.frequency / 1000.0),
+                24.0,
+                Vec2::new(0.0, 0.0),
+                Color::BLACK,
+            );
+            gizmos.text_2d(
                 Vec2::new(0.0, 300.0), // Fixed position high above the simulation area
                 &format!("Received Frequency: {:.2} kHz", sensor.smoothed_rx_frequency / 1000.0),
                 24.0,
@@ -251,7 +265,7 @@ pub fn synthesize_signal(
             let dist = hit.distance;
 
             // Convert dB to linear voltage gain multiplier
-            let linear_gain = 10_f32.powf(sensor.gain_db / 20.0);
+            let linear_gain = 10.0f32.powf(sensor.gain_db / 20.0);
 
             // Physical distance attenuation: inverse square law scaled by gain and normalized by ray count.
             // Because each ray represents a fraction of the wavefront energy, the sum of the ray echoes
@@ -475,6 +489,15 @@ pub fn plot_sensor_signal(
             env_color,
         );
 
+        // Y-axis Label
+        gizmos.text_2d(
+            Vec2::new(bottom_left.x, top_right.y + 25.0),
+            "Amplitude (a.u.)",
+            super::constant::plot::AXIS_LABEL_SIZE,
+            Vec2::new(0.0, 0.0), // Left aligned, above the left edge
+            border_color,
+        );
+
         gizmos.text_2d(
             Vec2::new(
                 plot_center.x,
@@ -486,13 +509,13 @@ pub fn plot_sensor_signal(
             border_color,
         );
 
-        // Display paused state at top left
+        // Display paused state at top center
         if time.is_paused() {
             gizmos.text_2d(
-                Vec2::new(bottom_left.x, top_right.y + 25.0),
+                Vec2::new(plot_center.x, top_right.y + 25.0),
                 "PAUSED",
                 super::constant::plot::INSTRUCTION_SIZE,
-                Vec2::new(0.0, 0.0), // Left aligned
+                Vec2::new(0.5, 0.0), // Center aligned
                 Color::srgb(1.0, 0.2, 0.2), // Red so it's obvious
             );
         }
