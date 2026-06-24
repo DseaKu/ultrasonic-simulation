@@ -17,11 +17,11 @@ impl ReflectorBundle {
         Self {
             sprite: Sprite {
                 color: BLACK.into(),
-                custom_size: Some(Vec2::new(40.0, 40.0)),
+                custom_size: Some(Vec2::new(120.0, 120.0)),
                 ..default()
             },
             transform: Transform::from_xyz(200.0, 0.0, 0.0),
-            collider: Collider::rectangle(40.0, 40.0),
+            collider: Collider::rectangle(120.0, 120.0),
             rigid_body: RigidBody::Kinematic,
             reflector: component::Reflector::new(),
         }

@@ -206,8 +206,8 @@ pub fn synthesize_signal(
         let sigma = sensor.pulse_width;
         let sigma_sq = sigma * sigma;
 
-        // Synthesize the transmitted pulse ("main bang") centered at t = 0 (amplitude normalized to 1.0)
-        let tx_amplitude = super::constant::signal::TX_AMPLITUDE;
+        // Synthesize the transmitted pulse ("main bang") centered at t = 0
+        let tx_amplitude = sensor.tx_amplitude;
         let tx_t_start = -super::constant::signal::SIGMA_MULTIPLIER * sigma;
         let tx_t_end = super::constant::signal::SIGMA_MULTIPLIER * sigma;
         let tx_idx_start = ((tx_t_start - t_start) / dt_s) as usize;
@@ -229,7 +229,8 @@ pub fn synthesize_signal(
             // Physical distance attenuation: inverse square law scaled by gain and normalized by ray count.
             // Because each ray represents a fraction of the wavefront energy, the sum of the ray echoes
             // is normalized by the ray count so it cannot exceed the transmitted pulse amplitude.
-            let atten = (super::constant::signal::ATTENUATION_REF_DIST
+            let atten = tx_amplitude 
+                * (super::constant::signal::ATTENUATION_REF_DIST
                 / dist.max(super::constant::signal::ATTENUATION_REF_DIST))
             .powi(2)
                 * sensor.gain
@@ -352,23 +353,6 @@ pub fn plot_sensor_signal(
 
         let get_x = |d: f32| -> f32 { bottom_left.x + ((d - min_dist) / total_dist) * plot_width };
 
-        // Draw negative start tick
-        {
-            let x = get_x(min_dist);
-            gizmos.line_2d(
-                Vec2::new(x, bottom_left.y),
-                Vec2::new(x, bottom_left.y - super::constant::plot::TICK_LENGTH),
-                border_color,
-            );
-            let label = format!("{}", min_dist as i32);
-            gizmos.text_2d(
-                Vec2::new(x, bottom_left.y - super::constant::plot::TICK_LABEL_OFFSET),
-                &label,
-                super::constant::plot::TICK_LABEL_SIZE,
-                Vec2::ZERO,
-                border_color,
-            );
-        }
 
         // Draw vertical grid ticks and labels (every 100 distance units starting at 0)
         let num_ticks = super::constant::plot::NUM_TICKS;
@@ -540,10 +524,21 @@ pub fn egui_settings_panel(
                 
                 ui.add_space(20.0);
                 ui.label("Gain (x)");
-                // DragValue acts as a textbox when clicked!
                 ui.add(bevy_egui::egui::DragValue::new(&mut sensor.gain)
                     .range(super::constant::MIN_GAIN..=super::constant::MAX_GAIN)
                     .speed(0.1));
+
+                ui.add_space(10.0);
+                ui.label("TX Power Amplitude");
+                ui.add(bevy_egui::egui::DragValue::new(&mut sensor.tx_amplitude)
+                    .range(0.1..=10.0)
+                    .speed(0.1));
+
+                ui.add_space(10.0);
+                ui.label("TX Frequency (Hz)");
+                ui.add(bevy_egui::egui::DragValue::new(&mut sensor.frequency)
+                    .range(10_000.0..=100_000.0)
+                    .speed(500.0));
 
                 ui.add_space(10.0);
                 ui.label("Doppler Exaggeration (x)");

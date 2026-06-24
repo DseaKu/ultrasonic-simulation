@@ -19,11 +19,15 @@ fn setup_camera(mut commands: Commands) {
     // Upper pane camera (Simulation)
     commands.spawn((
         Camera2d,
+        Projection::Orthographic(OrthographicProjection {
+            scale: 3.0,
+            ..OrthographicProjection::default_2d()
+        }),
         Camera {
             order: 0,
             ..default()
         },
-        Transform::from_xyz(0.0, 0.0, 0.0), // Look at simulation
+        Transform::from_xyz(1000.0, 0.0, 0.0), // Look at simulation
         SimulationCamera,
     ));
 

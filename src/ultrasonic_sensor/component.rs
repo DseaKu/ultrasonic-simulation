@@ -15,6 +15,7 @@ pub struct UltrasonicSensor {
     pub doppler_exaggeration: f32,
     pub show_rays: bool,
     pub temperature: f32,
+    pub tx_amplitude: f32,
 }
 
 impl UltrasonicSensor {
@@ -25,12 +26,13 @@ impl UltrasonicSensor {
             pulse_width: 0.00005,             // 1 ms pulse width by default
             beam_angle: 30.0f32.to_radians(), // 30 degrees beam spread
             ray_count: 32,                    // 32 rays in the cone
-            max_range: 800.0,                 // Max distance the rays can travel
+            max_range: 5000.0,                // Max distance the rays can travel (5 meters)
             gain: 1.0,                        // Default amplification factor
             smoothed_rx_frequency: constant::FREQUENCY_TRANSMITTED,
             doppler_exaggeration: 0.0,
             show_rays: false,
             temperature: 20.0,
+            tx_amplitude: constant::signal::TX_AMPLITUDE,
         }
     }
 }

@@ -22,7 +22,7 @@ impl UltrasonicSensorBundle {
             sensor_hits: component::SensorHits::new(),
             ultrasonic_signal: component::UltrasonicSignal::new(),
             sprite: Sprite::from_image(asset_server.load("sensor.png")),
-            transform: Transform::from_xyz(pos::X, pos::Y, pos::Z),
+            transform: Transform::from_xyz(pos::X, pos::Y, pos::Z).with_scale(Vec3::splat(3.0)),
         }
     }
 }

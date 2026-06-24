@@ -17,19 +17,19 @@ pub fn move_reflector(
         let speed = reflector.speed;
         let mut input_direction = Vec2::ZERO;
 
-        // X-axis: Left/Right Arrow or A/D keys
-        if keyboard.pressed(KeyCode::ArrowLeft) || keyboard.pressed(KeyCode::KeyA) {
+        // X-axis: A/D keys
+        if keyboard.pressed(KeyCode::KeyA) {
             input_direction.x -= 1.0;
         }
-        if keyboard.pressed(KeyCode::ArrowRight) || keyboard.pressed(KeyCode::KeyD) {
+        if keyboard.pressed(KeyCode::KeyD) {
             input_direction.x += 1.0;
         }
 
-        // Y-axis: Up/Down Arrow or W/S keys
-        if keyboard.pressed(KeyCode::ArrowUp) || keyboard.pressed(KeyCode::KeyW) {
+        // Y-axis: W/S keys
+        if keyboard.pressed(KeyCode::KeyW) {
             input_direction.y += 1.0;
         }
-        if keyboard.pressed(KeyCode::ArrowDown) || keyboard.pressed(KeyCode::KeyS) {
+        if keyboard.pressed(KeyCode::KeyS) {
             input_direction.y -= 1.0;
         }
 
