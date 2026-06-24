@@ -7,7 +7,7 @@ pub fn setup_reflector(mut commands: Commands) {
 }
 
 pub fn move_reflector(
-    time: Res<Time>,
+    time: Res<Time<Virtual>>,
     keyboard: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Transform, &super::component::Reflector)>,
 ) {

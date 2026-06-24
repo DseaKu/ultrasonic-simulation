@@ -9,18 +9,66 @@ pub fn setup_sensor(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 pub fn collect_sensor_data(
     spatial_query: SpatialQuery,
-    time: Res<Time>,
+    time: Res<Time<Virtual>>,
     mut query: Query<(
         &Transform,
-        &component::UltrasonicSensor,
+        &mut component::UltrasonicSensor,
         &mut component::SensorHits,
         &mut component::HitHistory,
     )>,
     mut gizmos: Gizmos,
 ) {
+    if time.is_paused() {
+        for (transform, sensor, _, _) in query.iter() {
+            let origin = transform.translation.xy();
+            let forward_vec3 = transform.rotation * Vec3::X;
+            let forward = Vec2::new(forward_vec3.x, forward_vec3.y).normalize_or_zero();
+
+            let ray_count = sensor.ray_count;
+            let beam_angle = sensor.beam_angle;
+
+            let hit_color = Color::srgb(0.0, 1.0, 1.0); // Cyan
+            let miss_color = Color::srgb(0.5, 0.5, 0.5); // Gray
+
+            for i in 0..ray_count {
+                let angle_offset = if ray_count > 1 {
+                    let t = i as f32 / (ray_count - 1) as f32;
+                    (t - 0.5) * beam_angle
+                } else {
+                    0.0
+                };
+
+                let ray_direction = Vec2::new(
+                    forward.x * angle_offset.cos() - forward.y * angle_offset.sin(),
+                    forward.x * angle_offset.sin() + forward.y * angle_offset.cos(),
+                );
+
+                let ray_dir2 = Dir2::new(ray_direction).unwrap_or(Dir2::X);
+
+                if let Some(hit) = spatial_query.cast_ray(
+                    origin,
+                    ray_dir2,
+                    sensor.max_range,
+                    true,
+                    &SpatialQueryFilter::default(),
+                ) {
+                    let hit_point = origin + ray_direction * hit.distance;
+                    gizmos.line_2d(origin, hit_point, hit_color);
+                } else {
+                    gizmos.line_2d(
+                        origin,
+                        origin + ray_direction * sensor.max_range,
+                        miss_color,
+                    );
+                }
+            }
+        }
+        return;
+    }
+
     let dt = time.delta_secs();
 
-    for (transform, sensor, mut sensor_hits, mut hit_history) in query.iter_mut() {
+    for (transform, mut sensor, mut sensor_hits, mut hit_history) in query.iter_mut() {
         sensor_hits.hits.clear();
         let mut next_history = std::collections::HashMap::new();
 
@@ -73,13 +121,15 @@ pub fn collect_sensor_data(
                 // 2. Time of Flight (t_delay)
                 let delay = (2.0 * d_current) / c;
 
-                // 3. Two-Way Doppler Shift (f_r)
-                let denom = c + v;
-                let doppler_freq = if denom.abs() > 0.001 {
-                    f_t * ((c - v) / denom)
+                // 3. Two-Way Doppler Shift (f_r) with 500x exaggeration to make it visible
+                let exaggerated_v = v * 500.0;
+                let denom = c + exaggerated_v;
+                let factor = if denom.abs() > 0.001 {
+                    ((c - exaggerated_v) / denom).clamp(0.25, 2.25)
                 } else {
-                    f_t
+                    1.0
                 };
+                let doppler_freq = f_t * factor;
 
                 sensor_hits.hits.push(component::RayHit {
                     entity: hit.entity,
@@ -106,6 +156,17 @@ pub fn collect_sensor_data(
 
         // Store history for the next frame
         hit_history.distances = next_history;
+
+        // Calculate instantaneous Doppler frequency of hits in this frame
+        let mut avg_doppler = f_t;
+        if !sensor_hits.hits.is_empty() {
+            let sum: f32 = sensor_hits.hits.iter().map(|h| h.doppler_freq).sum();
+            avg_doppler = sum / sensor_hits.hits.len() as f32;
+        }
+
+        // Apply exponential moving average (EMA) to smooth out numerical noise
+        let alpha = 0.15;
+        sensor.smoothed_rx_frequency = sensor.smoothed_rx_frequency + alpha * (avg_doppler - sensor.smoothed_rx_frequency);
     }
 }
 
@@ -205,10 +266,41 @@ pub fn synthesize_signal(
     }
 }
 
+pub fn setup_time_scale(mut time: ResMut<Time<Virtual>>) {
+    time.set_relative_speed(0.2);
+}
+
+pub fn adjust_time_scale(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut time: ResMut<Time<Virtual>>,
+) {
+    if keyboard.just_pressed(KeyCode::Space) {
+        if time.is_paused() {
+            time.unpause();
+        } else {
+            time.pause();
+        }
+    }
+
+    let mut speed = time.relative_speed();
+    if keyboard.just_pressed(KeyCode::BracketLeft) {
+        speed = (speed - 0.05).max(0.05);
+        time.set_relative_speed(speed);
+    }
+    if keyboard.just_pressed(KeyCode::BracketRight) {
+        speed = (speed + 0.05).min(2.0);
+        time.set_relative_speed(speed);
+    }
+}
+
 // Plot system using Bevy Gizmos to visualize the synthetic signals
 pub fn plot_sensor_signal(
-    query: Query<(&component::UltrasonicSensor, &component::UltrasonicSignal)>,
+    query: Query<(
+        &component::UltrasonicSensor,
+        &component::UltrasonicSignal,
+    )>,
     mut gizmos: Gizmos,
+    time: Res<Time<Virtual>>,
 ) {
     for (sensor, ultrasonic_signal) in query.iter() {
         if ultrasonic_signal.signal.is_empty() {
@@ -374,6 +466,20 @@ pub fn plot_sensor_signal(
             border_color,
         );
 
+        // Draw live Tx/Rx frequency readouts to demonstrate Doppler shift numerically
+        let freq_text = format!(
+            "Tx Freq: {:.1} kHz | Rx Freq: {:.1} kHz",
+            sensor.frequency / 1000.0,
+            sensor.smoothed_rx_frequency / 1000.0
+        );
+        gizmos.text_2d(
+            Vec2::new(plot_center.x + 130.0, top_right.y + 10.0),
+            &freq_text,
+            12.0,
+            Vec2::ZERO, // Centered
+            Color::BLACK,
+        );
+
         gizmos.text_2d(
             Vec2::new(top_right.x - 100.0, top_right.y + 10.0),
             "Carrier Wave",
@@ -389,8 +495,17 @@ pub fn plot_sensor_signal(
             env_color,
         );
 
-        // Display gain adjustment instructions
-        let gain_text = format!("Gain: {:.1}x (+/- to adjust)", sensor.gain);
+        // Display gain adjustment instructions and time scale
+        let time_scale_text = if time.is_paused() {
+            "Paused (Space)".to_string()
+        } else {
+            format!("{:.2}x ([/]/Space)", time.relative_speed())
+        };
+        let gain_text = format!(
+            "Gain: {:.1}x (+/-) | Time Scale: {}",
+            sensor.gain,
+            time_scale_text
+        );
         gizmos.text_2d(
             Vec2::new(bottom_left.x, bottom_left.y - 35.0),
             &gain_text,

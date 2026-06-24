@@ -11,6 +11,7 @@ pub struct UltrasonicSensor {
     pub ray_count: usize,
     pub max_range: f32,
     pub gain: f32,
+    pub smoothed_rx_frequency: f32,
 }
 
 impl UltrasonicSensor {
@@ -23,6 +24,7 @@ impl UltrasonicSensor {
             ray_count: 32,                    // 32 rays in the cone
             max_range: 800.0,                 // Max distance the rays can travel
             gain: 1.0,                        // Default amplification factor
+            smoothed_rx_frequency: constant::FREQUENCY_TRANSMITTED,
         }
     }
 }
