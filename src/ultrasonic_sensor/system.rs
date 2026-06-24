@@ -10,13 +10,13 @@ pub fn setup_sensor(mut commands: Commands, asset_server: Res<AssetServer>) {
 pub fn collect_sensor_data(
     spatial_query: SpatialQuery,
     time: Res<Time<Virtual>>,
-    keyboard: Res<ButtonInput<KeyCode>>,
     mut query: Query<(
         &Transform,
         &mut component::UltrasonicSensor,
         &mut component::SensorHits,
         &mut component::HitHistory,
     )>,
+    reflector_query: Query<&crate::reflector::component::Reflector>,
     mut gizmos: Gizmos,
 ) {
     if time.is_paused() {
@@ -67,12 +67,7 @@ pub fn collect_sensor_data(
         return;
     }
 
-    let mut target_velocity = 0.0;
-    if keyboard.pressed(KeyCode::ArrowLeft) || keyboard.pressed(KeyCode::KeyA) {
-        target_velocity = -crate::reflector::constant::SPEED;
-    } else if keyboard.pressed(KeyCode::ArrowRight) || keyboard.pressed(KeyCode::KeyD) {
-        target_velocity = crate::reflector::constant::SPEED;
-    }
+
 
     for (transform, mut sensor, mut sensor_hits, mut hit_history) in query.iter_mut() {
         sensor_hits.hits.clear();
@@ -117,7 +112,10 @@ pub fn collect_sensor_data(
                 let d_current = hit.distance;
 
                 // 1. Relative Velocity (v)
-                let v = target_velocity;
+                let mut v = 0.0;
+                if let Ok(hit_reflector) = reflector_query.get(hit.entity) {
+                    v = hit_reflector.current_velocity.x;
+                }
 
                 // 2. Time of Flight (t_delay)
                 let delay = (2.0 * d_current) / c;

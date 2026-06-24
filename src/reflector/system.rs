@@ -9,32 +9,50 @@ pub fn setup_reflector(mut commands: Commands) {
 pub fn move_reflector(
     time: Res<Time<Virtual>>,
     keyboard: Res<ButtonInput<KeyCode>>,
-    mut query: Query<(&mut Transform, &super::component::Reflector)>,
+    mut query: Query<(&mut Transform, &mut super::component::Reflector)>,
 ) {
     let dt = time.delta_secs();
 
-    for (mut transform, reflector) in query.iter_mut() {
+    for (mut transform, mut reflector) in query.iter_mut() {
         let speed = reflector.speed;
+        let mut input_direction = Vec2::ZERO;
 
         // X-axis: Left/Right Arrow or A/D keys
         if keyboard.pressed(KeyCode::ArrowLeft) || keyboard.pressed(KeyCode::KeyA) {
-            transform.translation.x -= speed * dt;
+            input_direction.x -= 1.0;
         }
         if keyboard.pressed(KeyCode::ArrowRight) || keyboard.pressed(KeyCode::KeyD) {
-            transform.translation.x += speed * dt;
+            input_direction.x += 1.0;
         }
 
         // Y-axis: Up/Down Arrow or W/S keys
         if keyboard.pressed(KeyCode::ArrowUp) || keyboard.pressed(KeyCode::KeyW) {
-            transform.translation.y += speed * dt;
+            input_direction.y += 1.0;
         }
         if keyboard.pressed(KeyCode::ArrowDown) || keyboard.pressed(KeyCode::KeyS) {
-            transform.translation.y -= speed * dt;
+            input_direction.y -= 1.0;
         }
 
+        let target_velocity = input_direction.normalize_or_zero() * speed;
+
+        // Smoothly interpolate current velocity towards target velocity
+        // Higher lerp factor = faster acceleration/deceleration
+        reflector.current_velocity = reflector.current_velocity.lerp(
+            target_velocity,
+            (super::constant::ACCELERATION_FACTOR * dt).min(1.0),
+        );
+
+        transform.translation += reflector.current_velocity.extend(0.0) * dt;
+
         // Clamp coordinates to keep reflector within visible and physical bounds
-        transform.translation.x = transform.translation.x.clamp(-250.0, 350.0);
-        transform.translation.y = transform.translation.y.clamp(-220.0, 220.0);
+        transform.translation.x = transform.translation.x.clamp(
+            super::constant::bounds::MIN_X,
+            super::constant::bounds::MAX_X,
+        );
+        transform.translation.y = transform.translation.y.clamp(
+            super::constant::bounds::MIN_Y,
+            super::constant::bounds::MAX_Y,
+        );
     }
 }
 

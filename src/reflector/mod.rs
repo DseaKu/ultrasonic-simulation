@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 mod bundle;
-mod component;
+pub mod component;
 pub mod constant;
 mod system;
 
