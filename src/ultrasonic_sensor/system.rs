@@ -192,8 +192,8 @@ pub fn synthesize_signal(
 
         let mut signal = vec![0.0; num_samples];
         let mut time_axis = vec![0.0; num_samples];
-        for j in 0..num_samples {
-            time_axis[j] = t_start + j as f32 * dt_s;
+        for (j, time) in time_axis.iter_mut().enumerate() {
+            *time = t_start + j as f32 * dt_s;
         }
 
         let sigma = sensor.pulse_width;
@@ -203,7 +203,7 @@ pub fn synthesize_signal(
         let tx_amplitude = super::constant::signal::TX_AMPLITUDE * sensor.gain;
         let tx_t_start = -super::constant::signal::SIGMA_MULTIPLIER * sigma;
         let tx_t_end = super::constant::signal::SIGMA_MULTIPLIER * sigma;
-        let tx_idx_start = (((tx_t_start - t_start) / dt_s) as usize).max(0);
+        let tx_idx_start = ((tx_t_start - t_start) / dt_s) as usize;
         let tx_idx_end = (((tx_t_end - t_start) / dt_s) as usize).min(num_samples - 1);
 
         for j in tx_idx_start..=tx_idx_end {
@@ -232,7 +232,7 @@ pub fn synthesize_signal(
             let echo_t_start = t_d - super::constant::signal::SIGMA_MULTIPLIER * sigma;
             let echo_t_end = t_d + super::constant::signal::SIGMA_MULTIPLIER * sigma;
 
-            let idx_start = (((echo_t_start - t_start) / dt_s) as usize).max(0);
+            let idx_start = ((echo_t_start - t_start) / dt_s) as usize;
             let idx_end = (((echo_t_end - t_start) / dt_s) as usize).min(num_samples - 1);
 
             for j in idx_start..=idx_end {
@@ -455,6 +455,16 @@ pub fn plot_sensor_signal(
         }
 
         // Draw Plot Titles and Legends (using correct text_2d alignment bounds)
+        gizmos.text_2d(
+            Vec2::new(
+                bottom_left.x,
+                top_right.y + super::constant::plot::MARGIN_Y,
+            ),
+            "Ultrasonic Echo Signal (Superposition)",
+            super::constant::plot::TITLE_SIZE,
+            Vec2::new(-0.5, 0.0), // Left aligned
+            Color::BLACK,
+        );
         gizmos.text_2d(
             Vec2::new(
                 plot_center.x,
