@@ -137,8 +137,8 @@ pub fn synthesize_signal(
         let sigma = sensor.pulse_width;
         let sigma_sq = sigma * sigma;
 
-        // Synthesize the transmitted pulse ("main bang") centered at t = 0
-        let tx_amplitude = 6.0 * sensor.gain;
+        // Synthesize the transmitted pulse ("main bang") centered at t = 0 (amplitude normalized to 1.0)
+        let tx_amplitude = 1.0 * sensor.gain;
         let tx_t_start = -4.0 * sigma;
         let tx_t_end = 4.0 * sigma;
         let tx_idx_start = (((tx_t_start - t_start) / dt_s) as usize).max(0);
@@ -157,8 +157,10 @@ pub fn synthesize_signal(
             let f_r = hit.doppler_freq;
             let dist = hit.distance;
 
-            // Physical distance attenuation: inverse square law (reference distance of 150.0) scaled by gain
-            let atten = (150.0 / dist.max(150.0)).powi(2) * sensor.gain;
+            // Physical distance attenuation: inverse square law scaled by gain and normalized by ray count.
+            // Because each ray represents a fraction of the wavefront energy, the sum of the ray echoes
+            // is normalized by the ray count so it cannot exceed the transmitted pulse amplitude.
+            let atten = (150.0 / dist.max(150.0)).powi(2) * sensor.gain / (sensor.ray_count as f32);
 
             // Sparse evaluation: within +/- 4 sigma
             let echo_t_start = t_d - 4.0 * sigma;
@@ -316,9 +318,10 @@ pub fn plot_sensor_signal(
         let time_axis = &ultrasonic_signal.time_axis;
         let num_samples = signal.len();
 
-        // Use a fixed scaling factor based on the number of rays to visualize physical attenuation
-        let max_possible_amp = sensor.ray_count as f32 * 0.45; // 45% of maximum theoretically possible sum when in-phase at close range
-        let scale_y = half_h / max_possible_amp.max(1.0);
+        // Since the maximum possible amplitude of the signal is normalized to 1.0 (at gain = 1.0),
+        // we use a fixed scaling factor of 1.0.
+        let max_possible_amp = 1.0;
+        let scale_y = half_h / max_possible_amp;
 
         // Downsample to draw ~1000 points to ensure good performance
         let step = (num_samples / 1000).max(1);
