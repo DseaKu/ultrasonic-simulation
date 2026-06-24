@@ -69,9 +69,9 @@ pub fn collect_sensor_data(
 
     let mut target_velocity = 0.0;
     if keyboard.pressed(KeyCode::ArrowLeft) || keyboard.pressed(KeyCode::KeyA) {
-        target_velocity = -500.0;
+        target_velocity = -crate::reflector::constant::SPEED;
     } else if keyboard.pressed(KeyCode::ArrowRight) || keyboard.pressed(KeyCode::KeyD) {
-        target_velocity = 500.0;
+        target_velocity = crate::reflector::constant::SPEED;
     }
 
     for (transform, mut sensor, mut sensor_hits, mut hit_history) in query.iter_mut() {
@@ -125,7 +125,10 @@ pub fn collect_sensor_data(
                 // 3. Two-Way Doppler Shift (f_r) with exaggeration to make it visible.
                 // Uses a linear approximation to avoid division singularities (sonic boom)
                 // when exaggerated velocity approaches or exceeds the speed of sound.
-                let factor = (1.0 - (2.0 * v * sensor.doppler_exaggeration) / c).clamp(0.25, 2.25);
+                let factor = (1.0 - (2.0 * v * sensor.doppler_exaggeration) / c).clamp(
+                    super::constant::MIN_DOPPLER_FACTOR,
+                    super::constant::MAX_DOPPLER_FACTOR,
+                );
                 let doppler_freq = f_t * factor;
 
                 sensor_hits.hits.push(component::RayHit {
@@ -162,8 +165,9 @@ pub fn collect_sensor_data(
         }
 
         // Apply exponential moving average (EMA) to smooth out numerical noise
-        let alpha = 0.15;
-        sensor.smoothed_rx_frequency = sensor.smoothed_rx_frequency + alpha * (avg_doppler - sensor.smoothed_rx_frequency);
+        let alpha = super::constant::signal::DOPPLER_SMOOTHING_ALPHA;
+        sensor.smoothed_rx_frequency =
+            sensor.smoothed_rx_frequency + alpha * (avg_doppler - sensor.smoothed_rx_frequency);
     }
 }
 
@@ -175,10 +179,10 @@ pub fn synthesize_signal(
     )>,
 ) {
     for (sensor, sensor_hits, mut ultrasonic_signal) in query.iter_mut() {
-        let fs = 200_000.0; // 200 kHz sample rate
+        let fs = super::constant::signal::SAMPLE_RATE; // 200 kHz sample rate
         let dt_s = 1.0 / fs;
 
-        let min_dist = -100.0; // Start at negative distance to show full transmitted pulse
+        let min_dist = super::constant::signal::MIN_DISTANCE; // Start at negative distance to show full transmitted pulse
         let max_dist = sensor.max_range;
 
         let t_start = 2.0 * min_dist / sensor.speed_of_sound;
@@ -196,9 +200,9 @@ pub fn synthesize_signal(
         let sigma_sq = sigma * sigma;
 
         // Synthesize the transmitted pulse ("main bang") centered at t = 0 (amplitude normalized to 1.0)
-        let tx_amplitude = 1.0 * sensor.gain;
-        let tx_t_start = -4.0 * sigma;
-        let tx_t_end = 4.0 * sigma;
+        let tx_amplitude = super::constant::signal::TX_AMPLITUDE * sensor.gain;
+        let tx_t_start = -super::constant::signal::SIGMA_MULTIPLIER * sigma;
+        let tx_t_end = super::constant::signal::SIGMA_MULTIPLIER * sigma;
         let tx_idx_start = (((tx_t_start - t_start) / dt_s) as usize).max(0);
         let tx_idx_end = (((tx_t_end - t_start) / dt_s) as usize).min(num_samples - 1);
 
@@ -218,11 +222,15 @@ pub fn synthesize_signal(
             // Physical distance attenuation: inverse square law scaled by gain and normalized by ray count.
             // Because each ray represents a fraction of the wavefront energy, the sum of the ray echoes
             // is normalized by the ray count so it cannot exceed the transmitted pulse amplitude.
-            let atten = (150.0 / dist.max(150.0)).powi(2) * sensor.gain / (sensor.ray_count as f32);
+            let atten = (super::constant::signal::ATTENUATION_REF_DIST
+                / dist.max(super::constant::signal::ATTENUATION_REF_DIST))
+            .powi(2)
+                * sensor.gain
+                / (sensor.ray_count as f32);
 
             // Sparse evaluation: within +/- 4 sigma
-            let echo_t_start = t_d - 4.0 * sigma;
-            let echo_t_end = t_d + 4.0 * sigma;
+            let echo_t_start = t_d - super::constant::signal::SIGMA_MULTIPLIER * sigma;
+            let echo_t_end = t_d + super::constant::signal::SIGMA_MULTIPLIER * sigma;
 
             let idx_start = (((echo_t_start - t_start) / dt_s) as usize).max(0);
             let idx_end = (((echo_t_end - t_start) / dt_s) as usize).min(num_samples - 1);
@@ -238,7 +246,7 @@ pub fn synthesize_signal(
 
         // 1. Zero-phase low-pass filter envelope detection
         let mut envelope = vec![0.0; num_samples];
-        let alpha = 0.08; // Cutoff frequency (~2.5 kHz) to smooth out the 40 kHz carrier ripples
+        let alpha = super::constant::signal::ENVELOPE_LOWPASS_ALPHA; // Cutoff frequency (~2.5 kHz) to smooth out the 40 kHz carrier ripples
 
         // Forward filter pass
         let mut filter_state = 0.0;
@@ -254,7 +262,7 @@ pub fn synthesize_signal(
         for j in (0..num_samples).rev() {
             let val = envelope[j];
             filter_state_back = alpha * val + (1.0 - alpha) * filter_state_back;
-            smooth_envelope[j] = filter_state_back * 1.57; // Multiply by pi/2 to restore peak amplitude
+            smooth_envelope[j] = filter_state_back * std::f32::consts::FRAC_PI_2; // Multiply by pi/2 to restore peak amplitude
         }
 
         ultrasonic_signal.time_axis = time_axis;
@@ -264,13 +272,10 @@ pub fn synthesize_signal(
 }
 
 pub fn setup_time_scale(mut time: ResMut<Time<Virtual>>) {
-    time.set_relative_speed(0.2);
+    time.set_relative_speed(super::constant::DEFAULT_TIME_SCALE);
 }
 
-pub fn adjust_time_scale(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut time: ResMut<Time<Virtual>>,
-) {
+pub fn adjust_time_scale(keyboard: Res<ButtonInput<KeyCode>>, mut time: ResMut<Time<Virtual>>) {
     if keyboard.just_pressed(KeyCode::Space) {
         if time.is_paused() {
             time.unpause();
@@ -281,21 +286,18 @@ pub fn adjust_time_scale(
 
     let mut speed = time.relative_speed();
     if keyboard.just_pressed(KeyCode::BracketLeft) {
-        speed = (speed - 0.05).max(0.05);
+        speed = (speed - super::constant::TIME_SCALE_STEP).max(super::constant::MIN_TIME_SCALE);
         time.set_relative_speed(speed);
     }
     if keyboard.just_pressed(KeyCode::BracketRight) {
-        speed = (speed + 0.05).min(2.0);
+        speed = (speed + super::constant::TIME_SCALE_STEP).min(super::constant::MAX_TIME_SCALE);
         time.set_relative_speed(speed);
     }
 }
 
 // Plot system using Bevy Gizmos to visualize the synthetic signals
 pub fn plot_sensor_signal(
-    query: Query<(
-        &component::UltrasonicSensor,
-        &component::UltrasonicSignal,
-    )>,
+    query: Query<(&component::UltrasonicSensor, &component::UltrasonicSignal)>,
     mut gizmos: Gizmos,
     time: Res<Time<Virtual>>,
 ) {
@@ -305,9 +307,12 @@ pub fn plot_sensor_signal(
         }
 
         // Define plotting region
-        let plot_width = 1000.0;
-        let plot_height = 160.0;
-        let plot_center = Vec2::new(0.0, -250.0);
+        let plot_width = super::constant::plot::WIDTH;
+        let plot_height = super::constant::plot::HEIGHT;
+        let plot_center = Vec2::new(
+            super::constant::plot::CENTER_X,
+            super::constant::plot::CENTER_Y,
+        );
 
         let half_w = plot_width / 2.0;
         let half_h = plot_height / 2.0;
@@ -348,32 +353,34 @@ pub fn plot_sensor_signal(
         );
 
         // Distances alignment constants
-        let min_dist = -100.0;
+        let min_dist = super::constant::signal::MIN_DISTANCE;
         let max_range = sensor.max_range;
         let total_dist = max_range - min_dist;
 
-        let get_x = |d: f32| -> f32 {
-            bottom_left.x + ((d - min_dist) / total_dist) * plot_width
-        };
+        let get_x = |d: f32| -> f32 { bottom_left.x + ((d - min_dist) / total_dist) * plot_width };
 
         // Draw negative start tick
         {
             let x = get_x(min_dist);
-            gizmos.line_2d(Vec2::new(x, bottom_left.y), Vec2::new(x, bottom_left.y - 5.0), border_color);
+            gizmos.line_2d(
+                Vec2::new(x, bottom_left.y),
+                Vec2::new(x, bottom_left.y - super::constant::plot::TICK_LENGTH),
+                border_color,
+            );
             let label = format!("{}", min_dist as i32);
             gizmos.text_2d(
-                Vec2::new(x, bottom_left.y - 15.0),
+                Vec2::new(x, bottom_left.y - super::constant::plot::TICK_LABEL_OFFSET),
                 &label,
-                11.0,
+                super::constant::plot::TICK_LABEL_SIZE,
                 Vec2::ZERO,
                 border_color,
             );
         }
 
         // Draw vertical grid ticks and labels (every 100 distance units starting at 0)
-        let num_ticks = 8;
+        let num_ticks = super::constant::plot::NUM_TICKS;
         for i in 0..=num_ticks {
-            let dist = (i * 100) as f32;
+            let dist = (i * super::constant::plot::TICK_SPACING) as f32;
             let x = get_x(dist);
 
             // Grid line
@@ -386,16 +393,16 @@ pub fn plot_sensor_signal(
             // Tick mark
             gizmos.line_2d(
                 Vec2::new(x, bottom_left.y),
-                Vec2::new(x, bottom_left.y - 5.0),
+                Vec2::new(x, bottom_left.y - super::constant::plot::TICK_LENGTH),
                 border_color,
             );
 
             // Tick label (distance in mm/units)
             let label = format!("{}", dist as i32);
             gizmos.text_2d(
-                Vec2::new(x, bottom_left.y - 15.0),
+                Vec2::new(x, bottom_left.y - super::constant::plot::TICK_LABEL_OFFSET),
                 &label,
-                11.0,
+                super::constant::plot::TICK_LABEL_SIZE,
                 Vec2::ZERO,
                 border_color,
             );
@@ -413,7 +420,7 @@ pub fn plot_sensor_signal(
         let scale_y = half_h / max_possible_amp;
 
         // Downsample to draw ~1000 points to ensure good performance
-        let step = (num_samples / 1000).max(1);
+        let step = (num_samples / super::constant::plot::DOWNSAMPLE_TARGET).max(1);
 
         let signal_color = Color::srgba(0.0, 0.8, 1.0, 0.45); // Cyan carrier wave
         let env_color = Color::srgb(1.0, 0.6, 0.0); // Orange envelope wave
@@ -449,16 +456,12 @@ pub fn plot_sensor_signal(
 
         // Draw Plot Titles and Legends (using correct text_2d alignment bounds)
         gizmos.text_2d(
-            Vec2::new(bottom_left.x, top_right.y + 10.0),
-            "Ultrasonic Echo Signal (Superposition)",
-            14.0,
-            Vec2::new(-0.5, 0.0), // Left aligned
-            Color::BLACK,
-        );
-        gizmos.text_2d(
-            Vec2::new(plot_center.x, bottom_left.y - 35.0),
+            Vec2::new(
+                plot_center.x,
+                bottom_left.y - super::constant::plot::LABEL_OFFSET_Y,
+            ),
             "Distance (mm)",
-            13.0,
+            super::constant::plot::AXIS_LABEL_SIZE,
             Vec2::ZERO, // Centered
             border_color,
         );
@@ -470,24 +473,30 @@ pub fn plot_sensor_signal(
             sensor.smoothed_rx_frequency / 1000.0
         );
         gizmos.text_2d(
-            Vec2::new(plot_center.x + 130.0, top_right.y + 10.0),
+            Vec2::new(
+                plot_center.x + super::constant::plot::FREQ_LABEL_OFFSET_X,
+                top_right.y + super::constant::plot::MARGIN_Y,
+            ),
             &freq_text,
-            12.0,
+            super::constant::plot::LEGEND_SIZE,
             Vec2::ZERO, // Centered
             Color::BLACK,
         );
 
         gizmos.text_2d(
-            Vec2::new(top_right.x - 100.0, top_right.y + 10.0),
+            Vec2::new(
+                top_right.x - super::constant::plot::LEGEND_SPACING,
+                top_right.y + super::constant::plot::MARGIN_Y,
+            ),
             "Carrier Wave",
-            12.0,
+            super::constant::plot::LEGEND_SIZE,
             Vec2::new(0.5, 0.0), // Right aligned relative to position
             signal_color,
         );
         gizmos.text_2d(
-            Vec2::new(top_right.x, top_right.y + 10.0),
+            Vec2::new(top_right.x, top_right.y + super::constant::plot::MARGIN_Y),
             "Envelope",
-            12.0,
+            super::constant::plot::LEGEND_SIZE,
             Vec2::new(0.5, 0.0), // Right aligned relative to position
             env_color,
         );
@@ -500,14 +509,15 @@ pub fn plot_sensor_signal(
         };
         let gain_text = format!(
             "Gain: {:.1}x (+/-) | Doppler: {:.0}x (</>) | Time Scale: {}",
-            sensor.gain,
-            sensor.doppler_exaggeration,
-            time_scale_text
+            sensor.gain, sensor.doppler_exaggeration, time_scale_text
         );
         gizmos.text_2d(
-            Vec2::new(bottom_left.x, bottom_left.y - 35.0),
+            Vec2::new(
+                bottom_left.x,
+                bottom_left.y - super::constant::plot::LABEL_OFFSET_Y,
+            ),
             &gain_text,
-            12.0,
+            super::constant::plot::INSTRUCTION_SIZE,
             Vec2::new(-0.5, 0.0), // Left aligned
             Color::BLACK,
         );
@@ -521,10 +531,10 @@ pub fn adjust_sensor_gain(
 ) {
     for mut sensor in query.iter_mut() {
         if keyboard.just_pressed(KeyCode::Equal) || keyboard.just_pressed(KeyCode::NumpadAdd) {
-            sensor.gain = (sensor.gain + 0.5).min(20.0);
+            sensor.gain = (sensor.gain + super::constant::GAIN_STEP).min(super::constant::MAX_GAIN);
         }
         if keyboard.just_pressed(KeyCode::Minus) || keyboard.just_pressed(KeyCode::NumpadSubtract) {
-            sensor.gain = (sensor.gain - 0.5).max(0.5);
+            sensor.gain = (sensor.gain - super::constant::GAIN_STEP).max(super::constant::MIN_GAIN);
         }
     }
 }
@@ -536,10 +546,14 @@ pub fn adjust_doppler_exaggeration(
 ) {
     for mut sensor in query.iter_mut() {
         if keyboard.just_pressed(KeyCode::Comma) {
-            sensor.doppler_exaggeration = (sensor.doppler_exaggeration - 50.0).max(0.0);
+            sensor.doppler_exaggeration = (sensor.doppler_exaggeration
+                - super::constant::DOPPLER_EXAGGERATION_STEP)
+                .max(super::constant::MIN_DOPPLER_EXAGGERATION);
         }
         if keyboard.just_pressed(KeyCode::Period) {
-            sensor.doppler_exaggeration = (sensor.doppler_exaggeration + 50.0).min(2000.0);
+            sensor.doppler_exaggeration = (sensor.doppler_exaggeration
+                + super::constant::DOPPLER_EXAGGERATION_STEP)
+                .min(super::constant::MAX_DOPPLER_EXAGGERATION);
         }
     }
 }

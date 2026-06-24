@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 mod bundle;
 mod component;
-mod constant;
+pub mod constant;
 mod system;
 
 pub struct ReflectorPlugin;
