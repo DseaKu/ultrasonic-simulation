@@ -31,7 +31,7 @@ pub mod plot {
     pub const WIDTH: f32 = 1000.0;
     pub const HEIGHT: f32 = 160.0;
     pub const CENTER_X: f32 = 0.0;
-    pub const CENTER_Y: f32 = -250.0;
+    pub const CENTER_Y: f32 = -5000.0;
     pub const TICK_LENGTH: f32 = 5.0;
     pub const TICK_LABEL_OFFSET: f32 = 15.0;
     pub const TICK_LABEL_SIZE: f32 = 11.0;
