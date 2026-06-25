@@ -10,7 +10,7 @@ pub const MAX_DOPPLER_EXAGGERATION: f32 = 2000.0;
 pub mod defaults {
     pub const PULSE_WIDTH: f32 = 0.0005;
     pub const BEAM_ANGLE_DEG: f32 = 20.0;
-    pub const RAY_COUNT: usize = 64;
+    pub const RAY_COUNT: usize = 128;
     pub const MAX_RANGE: f32 = 5000.0;
     pub const GAIN_DB: f32 = 40.0;
     pub const DOPPLER_EXAGGERATION: f32 = 1.0;

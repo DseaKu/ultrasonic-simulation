@@ -6,9 +6,13 @@ mod reflector;
 mod ultrasonic_sensor;
 
 fn main() {
-    App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugins(bevy_egui::EguiPlugin::default())
+    let mut app = App::new();
+    
+    app.add_plugins(DefaultPlugins);
+    
+    bevy::asset::embedded_asset!(app, "src/", "../assets/sensor.png");
+
+    app.add_plugins(bevy_egui::EguiPlugin::default())
         .insert_resource(ClearColor(Color::WHITE))
         .add_plugins(PhysicsPlugins::default())
         .insert_resource(Gravity(Vec2::ZERO))

@@ -21,7 +21,7 @@ impl UltrasonicSensorBundle {
             hit_history: component::HitHistory::new(),
             sensor_hits: component::SensorHits::new(),
             ultrasonic_signal: component::UltrasonicSignal::new(),
-            sprite: Sprite::from_image(asset_server.load("sensor.png")),
+            sprite: Sprite::from_image(asset_server.load("embedded://ultrasonic_simulation/../assets/sensor.png")),
             transform: Transform::from_xyz(pos::X, pos::Y, pos::Z).with_scale(Vec3::splat(3.0)),
         }
     }
