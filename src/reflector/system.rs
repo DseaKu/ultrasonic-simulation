@@ -55,3 +55,13 @@ pub fn move_reflector(
         );
     }
 }
+
+pub fn update_reflector_dimensions(
+    mut commands: Commands,
+    mut query: Query<(Entity, &super::component::Reflector, &mut Sprite), Changed<super::component::Reflector>>,
+) {
+    for (entity, reflector, mut sprite) in query.iter_mut() {
+        sprite.custom_size = Some(Vec2::new(reflector.width, reflector.height));
+        commands.entity(entity).insert(avian2d::prelude::Collider::rectangle(reflector.width, reflector.height));
+    }
+}

@@ -8,9 +8,9 @@ edition = "2024"
 [profile.dev.package."*"]
 opt-level = 3
 
-# Enable dynamic linking for faster compilation during development
+# Enable dynamic linking for faster compilation during development (disabled for standalone executable)
 [dependencies]
-# bevy = { version = "0.18.0", features = ["dynamic_linking"] }
-avian2d = "0.7.0"
 bevy = { version = "0.19.0", features = ["dynamic_linking"] }
+avian2d = "0.7.0"
+# bevy = { version = "0.19.0" }
 bevy_egui = "0.40.1"

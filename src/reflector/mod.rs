@@ -9,7 +9,7 @@ pub struct ReflectorPlugin;
 impl Plugin for ReflectorPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, system::setup_reflector)
-            .add_systems(Update, system::move_reflector);
+            .add_systems(Update, (system::move_reflector, system::update_reflector_dimensions));
     }
 }
 
