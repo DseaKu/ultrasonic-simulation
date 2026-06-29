@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-mod bundle;
+pub mod bundle;
 pub mod component;
 pub mod constant;
 mod system;

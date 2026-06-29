@@ -529,13 +529,14 @@ pub fn plot_sensor_signal(
 
 pub fn egui_settings_panel(
     mut contexts: bevy_egui::EguiContexts,
+    mut commands: Commands,
     mut sensor_query: Query<&mut component::UltrasonicSensor>,
-    mut reflector_query: Query<&mut crate::reflector::component::Reflector>,
+    mut reflector_query: Query<(Entity, &mut crate::reflector::component::Reflector), With<crate::reflector::component::SelectedReflector>>,
 ) {
     let Ok(ctx) = contexts.ctx_mut() else { return };
 
     if let Ok(mut sensor) = sensor_query.single_mut()
-        && let Ok(mut reflector) = reflector_query.single_mut()
+        && let Ok((reflector_entity, mut reflector)) = reflector_query.single_mut()
     {
         bevy_egui::egui::Window::new("Settings")
             .anchor(bevy_egui::egui::Align2::RIGHT_TOP, bevy_egui::egui::vec2(-10.0, 10.0))
@@ -629,6 +630,17 @@ pub fn egui_settings_panel(
                 ui.checkbox(&mut sensor.show_rays, "Show Ultrasonic Rays");
                 ui.checkbox(&mut sensor.show_carrier_wave, "Show Carrier Wave");
                 ui.checkbox(&mut sensor.show_rx_frequency, "Show Rx Frequency at Reflector");
+                
+                ui.add_space(20.0);
+                ui.separator();
+                ui.add_space(10.0);
+                if ui.button("Create New Reflector").clicked() {
+                    commands.entity(reflector_entity).remove::<crate::reflector::component::SelectedReflector>();
+                    commands.spawn((
+                        crate::reflector::bundle::ReflectorBundle::new(),
+                        crate::reflector::component::SelectedReflector,
+                    ));
+                }
             });
     }
 }
