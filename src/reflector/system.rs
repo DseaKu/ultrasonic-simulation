@@ -53,6 +53,9 @@ pub fn move_reflector(
             super::constant::bounds::MIN_Y,
             super::constant::bounds::MAX_Y,
         );
+
+        // Apply spin (continuous rotation)
+        transform.rotate_z(reflector.spin * dt);
     }
 }
 

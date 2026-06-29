@@ -8,6 +8,7 @@ pub struct Reflector {
     pub current_velocity: Vec2,
     pub width: f32,
     pub height: f32,
+    pub spin: f32,
 }
 impl Reflector {
     pub fn new() -> Self {
@@ -16,6 +17,7 @@ impl Reflector {
             current_velocity: Vec2::ZERO,
             width: constant::dimensions::WIDTH,
             height: constant::dimensions::HEIGHT,
+            spin: 0.0,
         }
     }
 }

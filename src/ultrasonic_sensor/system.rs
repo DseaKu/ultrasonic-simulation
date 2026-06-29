@@ -600,6 +600,12 @@ pub fn egui_settings_panel(
                     .speed(1.0));
 
                 ui.add_space(10.0);
+                ui.label("Reflector Spin (rad/s)");
+                ui.add(bevy_egui::egui::DragValue::new(&mut reflector.spin)
+                    .range(-10.0..=10.0)
+                    .speed(0.1));
+
+                ui.add_space(10.0);
                 ui.checkbox(&mut sensor.show_rays, "Show Ultrasonic Rays");
                 ui.checkbox(&mut sensor.show_carrier_wave, "Show Carrier Wave");
                 ui.checkbox(&mut sensor.show_rx_frequency, "Show Rx Frequency at Reflector");
