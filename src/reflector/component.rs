@@ -12,6 +12,7 @@ pub struct Reflector {
     pub width: f32,
     pub height: f32,
     pub spin: f32,
+    pub current_spin_velocity: f32,
 }
 impl Reflector {
     pub fn new() -> Self {
@@ -20,7 +21,8 @@ impl Reflector {
             current_velocity: Vec2::ZERO,
             width: constant::dimensions::WIDTH,
             height: constant::dimensions::HEIGHT,
-            spin: 0.0,
+            spin: 5.0, // Default spin speed
+            current_spin_velocity: 0.0,
         }
     }
 }

@@ -136,7 +136,7 @@ pub fn collect_sensor_data(
                 if let Ok((hit_transform, hit_reflector)) = reflector_query.get(hit.entity) {
                     let linear_vel = hit_reflector.current_velocity;
                     let r = hit_point - hit_transform.translation.xy();
-                    let w = hit_reflector.spin;
+                    let w = hit_reflector.current_spin_velocity;
                     let angular_vel = Vec2::new(-w * r.y, w * r.x);
                     let v_total = linear_vel + angular_vel;
                     v = v_total.dot(ray_direction);
@@ -621,9 +621,9 @@ pub fn egui_settings_panel(
                     .speed(1.0));
 
                 ui.add_space(10.0);
-                ui.label("Reflector Spin (rad/s)");
+                ui.label("Reflector Spin Speed (rad/s)");
                 ui.add(bevy_egui::egui::DragValue::new(&mut reflector.spin)
-                    .range(-10.0..=10.0)
+                    .range(0.0..=20.0)
                     .speed(0.1));
 
                 ui.add_space(10.0);

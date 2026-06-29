@@ -15,6 +15,7 @@ pub fn move_reflector(
 
     for (is_selected, mut transform, mut reflector) in query.iter_mut() {
         let mut input_direction = Vec2::ZERO;
+        let mut input_spin = 0.0;
 
         if is_selected {
             // X-axis: A/D keys
@@ -32,6 +33,14 @@ pub fn move_reflector(
             if keyboard.pressed(KeyCode::KeyS) {
                 input_direction.y -= 1.0;
             }
+
+            // Spin: Q/E keys
+            if keyboard.pressed(KeyCode::KeyQ) {
+                input_spin += 1.0;
+            }
+            if keyboard.pressed(KeyCode::KeyE) {
+                input_spin -= 1.0;
+            }
         }
 
         let speed_mm_s = reflector.speed * 1000.0;
@@ -39,10 +48,15 @@ pub fn move_reflector(
 
         // Smoothly interpolate current velocity towards target velocity
         // Higher lerp factor = faster acceleration/deceleration
+        let lerp_factor = (super::constant::defaults::ACCELERATION_FACTOR * dt).min(1.0);
         reflector.current_velocity = reflector.current_velocity.lerp(
             target_velocity,
-            (super::constant::defaults::ACCELERATION_FACTOR * dt).min(1.0),
+            lerp_factor,
         );
+
+        let target_spin = input_spin * reflector.spin;
+        reflector.current_spin_velocity = reflector.current_spin_velocity 
+            + (target_spin - reflector.current_spin_velocity) * lerp_factor;
 
         transform.translation += reflector.current_velocity.extend(0.0) * dt;
 
@@ -57,7 +71,7 @@ pub fn move_reflector(
         );
 
         // Apply spin (continuous rotation)
-        transform.rotate_z(reflector.spin * dt);
+        transform.rotate_z(reflector.current_spin_velocity * dt);
     }
 }
 
