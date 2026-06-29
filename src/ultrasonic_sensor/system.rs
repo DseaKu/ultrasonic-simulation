@@ -16,7 +16,7 @@ pub fn collect_sensor_data(
         &mut component::SensorHits,
         &mut component::HitHistory,
     )>,
-    reflector_query: Query<&crate::reflector::component::Reflector>,
+    reflector_query: Query<(&Transform, &crate::reflector::component::Reflector)>,
     mut gizmos: Gizmos,
 ) {
     if time.is_paused() {
@@ -133,8 +133,13 @@ pub fn collect_sensor_data(
 
                 // 1. Relative Velocity (v)
                 let mut v = 0.0;
-                if let Ok(hit_reflector) = reflector_query.get(hit.entity) {
-                    v = hit_reflector.current_velocity.x;
+                if let Ok((hit_transform, hit_reflector)) = reflector_query.get(hit.entity) {
+                    let linear_vel = hit_reflector.current_velocity;
+                    let r = hit_point - hit_transform.translation.xy();
+                    let w = hit_reflector.spin;
+                    let angular_vel = Vec2::new(-w * r.y, w * r.x);
+                    let v_total = linear_vel + angular_vel;
+                    v = v_total.dot(ray_direction);
                 }
 
                 // 2. Time of Flight (t_delay)
@@ -568,6 +573,21 @@ pub fn egui_settings_panel(
                     .range(0.1..=100.0)
                     .speed(0.5)).changed() {
                     sensor.frequency = freq_khz * 1000.0;
+                }
+
+                ui.add_space(10.0);
+                ui.label("Amount of Rays");
+                ui.add(bevy_egui::egui::DragValue::new(&mut sensor.ray_count)
+                    .range(1..=1024)
+                    .speed(1.0));
+
+                ui.add_space(10.0);
+                ui.label("Beam Width (Degrees)");
+                let mut beam_deg = sensor.beam_angle.to_degrees();
+                if ui.add(bevy_egui::egui::DragValue::new(&mut beam_deg)
+                    .range(1.0..=180.0)
+                    .speed(1.0)).changed() {
+                    sensor.beam_angle = beam_deg.to_radians();
                 }
 
                 ui.add_space(10.0);
