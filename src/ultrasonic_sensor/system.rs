@@ -416,10 +416,15 @@ pub fn plot_sensor_signal(
 
         let get_x = |d: f32| -> f32 { bottom_left.x + ((d - min_dist) / total_dist) * plot_width };
 
-        // Draw vertical grid ticks and labels (every 100 distance units starting at 0)
-        let num_ticks = super::constant::plot::NUM_TICKS;
+        let assumed_c = super::constant::SPEED_OF_SOUND;
+        let max_time_ms = (sensor.max_range * 2.0 / assumed_c) * 1000.0;
+        let tick_spacing_ms = 5.0; // 5ms per tick
+        let num_ticks = (max_time_ms / tick_spacing_ms).ceil() as usize;
+
         for i in 0..=num_ticks {
-            let dist = (i * super::constant::plot::TICK_SPACING) as f32;
+            let t_ms = i as f32 * tick_spacing_ms;
+            let dist = (t_ms / 1000.0) * assumed_c / 2.0;
+            if dist > sensor.max_range + 0.1 { break; }
             let x = get_x(dist);
 
             // Grid line
@@ -436,8 +441,8 @@ pub fn plot_sensor_signal(
                 border_color,
             );
 
-            // Tick label (distance in meters, unitless numbers)
-            let label = format!("{:.1}", dist / 1000.0);
+            // Tick label (time in ms)
+            let label = format!("{:.1}", t_ms);
             gizmos.text_2d(
                 Vec2::new(x, bottom_left.y - super::constant::plot::TICK_LABEL_OFFSET),
                 &label,
@@ -531,7 +536,7 @@ pub fn plot_sensor_signal(
 
         gizmos.text_2d(
             Vec2::new(plot_center.x, bottom_left.y - 35.0),
-            "Distance (m) →",
+            "Time (ms) →",
             super::constant::plot::AXIS_LABEL_SIZE,
             Vec2::ZERO, // Centered
             border_color,
