@@ -69,39 +69,39 @@ pub fn collect_sensor_data(
             }
             if sensor.show_rx_frequency {
                 gizmos.text_2d(
-                    Vec2::new(-500.0, 360.0),
+                    Vec2::new(-500.0, -4705.0),
                     &format!(
                         "Transmitted Frequency: {:.2} kHz",
                         sensor.frequency / 1000.0
                     ),
-                    36.0,
+                    21.0,
                     Vec2::new(-0.5, 0.0),
                     Color::BLACK,
                 );
                 gizmos.text_2d(
-                    Vec2::new(-500.0, 300.0), // Fixed position high above the simulation area
+                    Vec2::new(-500.0, -4740.0), // Above the signal plot
                     &format!(
                         "Received Frequency: {:.2} kHz",
                         sensor.smoothed_rx_frequency / 1000.0
                     ),
-                    36.0,
+                    21.0,
                     Vec2::new(-0.5, 0.0),
                     Color::BLACK,
                 );
                 if let Some((ref_transform, reflector)) = reflector_query.iter().next() {
                     let dist = origin.distance(ref_transform.translation.xy());
                     gizmos.text_2d(
-                        Vec2::new(-500.0, 240.0),
+                        Vec2::new(-500.0, -4775.0),
                         &format!("Reflector Distance: {:.1} mm", dist),
-                        36.0,
+                        21.0,
                         Vec2::new(-0.5, 0.0),
                         Color::BLACK,
                     );
                     let speed_m_s = reflector.current_velocity.length() / 1000.0;
                     gizmos.text_2d(
-                        Vec2::new(-500.0, 180.0),
+                        Vec2::new(-500.0, -4810.0),
                         &format!("Reflector Speed: {:.2} m/s", speed_m_s),
-                        36.0,
+                        21.0,
                         Vec2::new(-0.5, 0.0),
                         Color::BLACK,
                     );
@@ -220,39 +220,39 @@ pub fn collect_sensor_data(
 
         if sensor.show_rx_frequency {
             gizmos.text_2d(
-                Vec2::new(-500.0, 360.0),
+                Vec2::new(-500.0, -4705.0),
                 &format!(
                     "Transmitted Frequency: {:.2} kHz",
                     sensor.frequency / 1000.0
                 ),
-                36.0,
+                21.0,
                 Vec2::new(-0.5, 0.0),
                 Color::BLACK,
             );
             gizmos.text_2d(
-                Vec2::new(-500.0, 300.0), // Fixed position high above the simulation area
+                Vec2::new(-500.0, -4740.0), // Above the signal plot
                 &format!(
                     "Received Frequency: {:.2} kHz",
                     sensor.smoothed_rx_frequency / 1000.0
                 ),
-                36.0,
+                21.0,
                 Vec2::new(-0.5, 0.0),
                 Color::BLACK,
             );
             if let Some((ref_transform, reflector)) = reflector_query.iter().next() {
                 let dist = origin.distance(ref_transform.translation.xy());
                 gizmos.text_2d(
-                    Vec2::new(-500.0, 240.0),
+                    Vec2::new(-500.0, -4775.0),
                     &format!("Reflector Distance: {:.1} mm", dist),
-                    36.0,
+                    21.0,
                     Vec2::new(-0.5, 0.0),
                     Color::BLACK,
                 );
                 let speed_m_s = reflector.current_velocity.length() / 1000.0;
                 gizmos.text_2d(
-                    Vec2::new(-500.0, 180.0),
+                    Vec2::new(-500.0, -4810.0),
                     &format!("Reflector Speed: {:.2} m/s", speed_m_s),
-                    36.0,
+                    21.0,
                     Vec2::new(-0.5, 0.0),
                     Color::BLACK,
                 );

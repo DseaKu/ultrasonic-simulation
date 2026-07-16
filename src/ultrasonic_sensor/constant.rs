@@ -38,8 +38,7 @@ pub mod plot {
     pub const TICK_LENGTH: f32 = 5.0;
     pub const TICK_LABEL_OFFSET: f32 = 15.0;
     pub const TICK_LABEL_SIZE: f32 = 11.0;
-    pub const NUM_TICKS: usize = 10;
-    pub const TICK_SPACING: usize = 500;
+
     pub const DOWNSAMPLE_TARGET: usize = 20000; // High enough to never downsample, avoiding 40kHz aliasing
 
     pub const AXIS_LABEL_SIZE: f32 = 13.0;
