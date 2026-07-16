@@ -69,25 +69,39 @@ pub fn collect_sensor_data(
             }
             if sensor.show_rx_frequency {
                 gizmos.text_2d(
-                    Vec2::new(0.0, 330.0),
-                    &format!("Transmitted Frequency: {:.2} kHz", sensor.frequency / 1000.0),
-                    24.0,
-                    Vec2::new(0.0, 0.0),
+                    Vec2::new(-500.0, 360.0),
+                    &format!(
+                        "Transmitted Frequency: {:.2} kHz",
+                        sensor.frequency / 1000.0
+                    ),
+                    36.0,
+                    Vec2::new(-0.5, 0.0),
                     Color::BLACK,
                 );
                 gizmos.text_2d(
-                    Vec2::new(0.0, 300.0), // Fixed position high above the simulation area
-                    &format!("Received Frequency: {:.2} kHz", sensor.smoothed_rx_frequency / 1000.0),
-                    24.0,
-                    Vec2::new(0.0, 0.0),
+                    Vec2::new(-500.0, 300.0), // Fixed position high above the simulation area
+                    &format!(
+                        "Received Frequency: {:.2} kHz",
+                        sensor.smoothed_rx_frequency / 1000.0
+                    ),
+                    36.0,
+                    Vec2::new(-0.5, 0.0),
                     Color::BLACK,
                 );
+                if let Some((ref_transform, _)) = reflector_query.iter().next() {
+                    let dist = origin.distance(ref_transform.translation.xy());
+                    gizmos.text_2d(
+                        Vec2::new(-500.0, 240.0),
+                        &format!("Reflector Distance: {:.1} mm", dist),
+                        36.0,
+                        Vec2::new(-0.5, 0.0),
+                        Color::BLACK,
+                    );
+                }
             }
         }
         return;
     }
-
-
 
     for (transform, mut sensor, mut sensor_hits, mut hit_history) in query.iter_mut() {
         sensor_hits.hits.clear();
@@ -181,8 +195,6 @@ pub fn collect_sensor_data(
             }
         }
 
-
-
         // Store history for the next frame
         hit_history.distances = next_history;
 
@@ -200,19 +212,35 @@ pub fn collect_sensor_data(
 
         if sensor.show_rx_frequency {
             gizmos.text_2d(
-                Vec2::new(0.0, 330.0),
-                &format!("Transmitted Frequency: {:.2} kHz", sensor.frequency / 1000.0),
-                24.0,
-                Vec2::new(0.0, 0.0),
+                Vec2::new(-500.0, 360.0),
+                &format!(
+                    "Transmitted Frequency: {:.2} kHz",
+                    sensor.frequency / 1000.0
+                ),
+                36.0,
+                Vec2::new(-0.5, 0.0),
                 Color::BLACK,
             );
             gizmos.text_2d(
-                Vec2::new(0.0, 300.0), // Fixed position high above the simulation area
-                &format!("Received Frequency: {:.2} kHz", sensor.smoothed_rx_frequency / 1000.0),
-                24.0,
-                Vec2::new(0.0, 0.0),
+                Vec2::new(-500.0, 300.0), // Fixed position high above the simulation area
+                &format!(
+                    "Received Frequency: {:.2} kHz",
+                    sensor.smoothed_rx_frequency / 1000.0
+                ),
+                36.0,
+                Vec2::new(-0.5, 0.0),
                 Color::BLACK,
             );
+            if let Some((ref_transform, _)) = reflector_query.iter().next() {
+                let dist = origin.distance(ref_transform.translation.xy());
+                gizmos.text_2d(
+                    Vec2::new(-500.0, 240.0),
+                    &format!("Reflector Distance: {:.1} mm", dist),
+                    36.0,
+                    Vec2::new(-0.5, 0.0),
+                    Color::BLACK,
+                );
+            }
         }
     }
 }
@@ -236,7 +264,6 @@ pub fn synthesize_signal(
         let t_end = 2.0 * max_dist / assumed_c;
         let t_span = t_end - t_start;
         let num_samples = (t_span / dt_s).ceil() as usize;
-
 
         let mut time_axis = vec![0.0; num_samples];
         for (j, time) in time_axis.iter_mut().enumerate() {
@@ -275,10 +302,10 @@ pub fn synthesize_signal(
             // Physical distance attenuation: inverse square law scaled by gain and normalized by ray count.
             // Because each ray represents a fraction of the wavefront energy, the sum of the ray echoes
             // is normalized by the ray count so it cannot exceed the transmitted pulse amplitude.
-            let atten = tx_amplitude 
+            let atten = tx_amplitude
                 * (super::constant::signal::ATTENUATION_REF_DIST
-                / dist.max(super::constant::signal::ATTENUATION_REF_DIST))
-            .powi(2)
+                    / dist.max(super::constant::signal::ATTENUATION_REF_DIST))
+                .powi(2)
                 * linear_gain
                 / (sensor.ray_count as f32);
 
@@ -389,7 +416,6 @@ pub fn plot_sensor_signal(
 
         let get_x = |d: f32| -> f32 { bottom_left.x + ((d - min_dist) / total_dist) * plot_width };
 
-
         // Draw vertical grid ticks and labels (every 100 distance units starting at 0)
         let num_ticks = super::constant::plot::NUM_TICKS;
         for i in 0..=num_ticks {
@@ -435,7 +461,7 @@ pub fn plot_sensor_signal(
         // Downsample to draw ~1000 points to ensure good performance
         let step = (num_samples / super::constant::plot::DOWNSAMPLE_TARGET).max(1);
 
-        let signal_color = Color::srgba(0.0, 0.8, 1.0, 0.45); // Cyan carrier wave
+        let signal_color = Color::srgba(0.0, 0.4, 0.6, 0.45); // Darker cyan carrier wave
         let env_color = Color::srgb(1.0, 0.6, 0.0); // Orange envelope wave
 
         let mut prev_sig_point: Option<Vec2> = None;
@@ -504,10 +530,7 @@ pub fn plot_sensor_signal(
         );
 
         gizmos.text_2d(
-            Vec2::new(
-                plot_center.x,
-                bottom_left.y - 35.0,
-            ),
+            Vec2::new(plot_center.x, bottom_left.y - 35.0),
             "Distance (m) →",
             super::constant::plot::AXIS_LABEL_SIZE,
             Vec2::ZERO, // Centered
@@ -520,7 +543,7 @@ pub fn plot_sensor_signal(
                 Vec2::new(plot_center.x, top_right.y + 25.0),
                 "PAUSED",
                 super::constant::plot::INSTRUCTION_SIZE,
-                Vec2::new(0.5, 0.0), // Center aligned
+                Vec2::new(0.5, 0.0),        // Center aligned
                 Color::srgb(1.0, 0.2, 0.2), // Red so it's obvious
             );
         }
@@ -531,7 +554,10 @@ pub fn egui_settings_panel(
     mut contexts: bevy_egui::EguiContexts,
     mut commands: Commands,
     mut sensor_query: Query<&mut component::UltrasonicSensor>,
-    mut reflector_query: Query<(Entity, &mut crate::reflector::component::Reflector), With<crate::reflector::component::SelectedReflector>>,
+    mut reflector_query: Query<
+        (Entity, &mut crate::reflector::component::Reflector),
+        With<crate::reflector::component::SelectedReflector>,
+    >,
 ) {
     let Ok(ctx) = contexts.ctx_mut() else { return };
 
@@ -539,103 +565,145 @@ pub fn egui_settings_panel(
         && let Ok((reflector_entity, mut reflector)) = reflector_query.single_mut()
     {
         bevy_egui::egui::Window::new("Settings")
-            .anchor(bevy_egui::egui::Align2::RIGHT_TOP, bevy_egui::egui::vec2(-10.0, 10.0))
+            // .anchor(bevy_egui::egui::Align2::RIGHT_TOP, bevy_egui::egui::vec2(-10.0, 10.0))
             .default_open(false)
             .show(ctx, |ui| {
                 ui.add_space(20.0);
                 ui.heading("Settings");
                 ui.separator();
-                
+
                 ui.add_space(20.0);
                 ui.label("Gain (dB)");
-                ui.add(bevy_egui::egui::DragValue::new(&mut sensor.gain_db)
-                    .range(0.0..=100.0)
-                    .speed(0.5));
+                ui.add(
+                    bevy_egui::egui::DragValue::new(&mut sensor.gain_db)
+                        .range(0.0..=100.0)
+                        .speed(0.5),
+                );
 
                 ui.add_space(10.0);
                 ui.label("TX Power Amplitude");
-                ui.add(bevy_egui::egui::DragValue::new(&mut sensor.tx_amplitude)
-                    .range(0.1..=10.0)
-                    .speed(0.1));
+                ui.add(
+                    bevy_egui::egui::DragValue::new(&mut sensor.tx_amplitude)
+                        .range(0.1..=10.0)
+                        .speed(0.1),
+                );
 
                 ui.add_space(10.0);
                 ui.label("Pulse Width (ms)");
                 let mut pulse_ms = sensor.pulse_width * 1000.0;
-                if ui.add(bevy_egui::egui::DragValue::new(&mut pulse_ms)
-                    .range(0.01..=10.0)
-                    .speed(0.01)).changed() {
+                if ui
+                    .add(
+                        bevy_egui::egui::DragValue::new(&mut pulse_ms)
+                            .range(0.01..=10.0)
+                            .speed(0.01),
+                    )
+                    .changed()
+                {
                     sensor.pulse_width = pulse_ms / 1000.0;
                 }
 
                 ui.add_space(10.0);
                 ui.label("TX Frequency (kHz)");
                 let mut freq_khz = sensor.frequency / 1000.0;
-                if ui.add(bevy_egui::egui::DragValue::new(&mut freq_khz)
-                    .range(0.1..=100.0)
-                    .speed(0.5)).changed() {
+                if ui
+                    .add(
+                        bevy_egui::egui::DragValue::new(&mut freq_khz)
+                            .range(0.1..=100.0)
+                            .speed(0.5),
+                    )
+                    .changed()
+                {
                     sensor.frequency = freq_khz * 1000.0;
                 }
 
                 ui.add_space(10.0);
                 ui.label("Amount of Rays");
-                ui.add(bevy_egui::egui::DragValue::new(&mut sensor.ray_count)
-                    .range(1..=1024)
-                    .speed(1.0));
+                ui.add(
+                    bevy_egui::egui::DragValue::new(&mut sensor.ray_count)
+                        .range(1..=1024)
+                        .speed(1.0),
+                );
 
                 ui.add_space(10.0);
                 ui.label("Beam Width (Degrees)");
                 let mut beam_deg = sensor.beam_angle.to_degrees();
-                if ui.add(bevy_egui::egui::DragValue::new(&mut beam_deg)
-                    .range(1.0..=180.0)
-                    .speed(1.0)).changed() {
+                if ui
+                    .add(
+                        bevy_egui::egui::DragValue::new(&mut beam_deg)
+                            .range(1.0..=180.0)
+                            .speed(1.0),
+                    )
+                    .changed()
+                {
                     sensor.beam_angle = beam_deg.to_radians();
                 }
 
                 ui.add_space(10.0);
                 ui.label("Doppler Exaggeration (x)");
-                ui.add(bevy_egui::egui::DragValue::new(&mut sensor.doppler_exaggeration)
-                    .range(super::constant::MIN_DOPPLER_EXAGGERATION..=super::constant::MAX_DOPPLER_EXAGGERATION)
-                    .speed(10.0));
+                ui.add(
+                    bevy_egui::egui::DragValue::new(&mut sensor.doppler_exaggeration)
+                        .range(
+                            super::constant::MIN_DOPPLER_EXAGGERATION
+                                ..=super::constant::MAX_DOPPLER_EXAGGERATION,
+                        )
+                        .speed(10.0),
+                );
 
                 ui.add_space(10.0);
                 ui.label("Temperature (C)");
-                if ui.add(bevy_egui::egui::DragValue::new(&mut sensor.temperature).speed(0.5)).changed() {
+                if ui
+                    .add(bevy_egui::egui::DragValue::new(&mut sensor.temperature).speed(0.5))
+                    .changed()
+                {
                     sensor.speed_of_sound = (331.3 + 0.606 * sensor.temperature) * 1000.0;
                 }
                 ui.add_space(10.0);
                 ui.label("Reflector Speed (m/s)");
-                ui.add(bevy_egui::egui::DragValue::new(&mut reflector.speed)
-                    .range(0.1..=10.0)
-                    .speed(0.1));
+                ui.add(
+                    bevy_egui::egui::DragValue::new(&mut reflector.speed)
+                        .range(0.1..=10.0)
+                        .speed(0.1),
+                );
 
                 ui.add_space(10.0);
                 ui.label("Reflector Width (mm)");
-                ui.add(bevy_egui::egui::DragValue::new(&mut reflector.width)
-                    .range(10.0..=1000.0)
-                    .speed(1.0));
+                ui.add(
+                    bevy_egui::egui::DragValue::new(&mut reflector.width)
+                        .range(10.0..=1000.0)
+                        .speed(1.0),
+                );
 
                 ui.add_space(10.0);
                 ui.label("Reflector Height (mm)");
-                ui.add(bevy_egui::egui::DragValue::new(&mut reflector.height)
-                    .range(10.0..=1000.0)
-                    .speed(1.0));
+                ui.add(
+                    bevy_egui::egui::DragValue::new(&mut reflector.height)
+                        .range(10.0..=1000.0)
+                        .speed(1.0),
+                );
 
                 ui.add_space(10.0);
                 ui.label("Reflector Spin Speed (rad/s)");
-                ui.add(bevy_egui::egui::DragValue::new(&mut reflector.spin)
-                    .range(0.0..=20.0)
-                    .speed(0.1));
+                ui.add(
+                    bevy_egui::egui::DragValue::new(&mut reflector.spin)
+                        .range(0.0..=20.0)
+                        .speed(0.1),
+                );
 
                 ui.add_space(10.0);
                 ui.checkbox(&mut sensor.show_rays, "Show Ultrasonic Rays");
                 ui.checkbox(&mut sensor.show_carrier_wave, "Show Carrier Wave");
-                ui.checkbox(&mut sensor.show_rx_frequency, "Show Rx Frequency at Reflector");
-                
+                ui.checkbox(
+                    &mut sensor.show_rx_frequency,
+                    "Show Rx Frequency at Reflector",
+                );
+
                 ui.add_space(20.0);
                 ui.separator();
                 ui.add_space(10.0);
                 if ui.button("Create New Reflector").clicked() {
-                    commands.entity(reflector_entity).remove::<crate::reflector::component::SelectedReflector>();
+                    commands
+                        .entity(reflector_entity)
+                        .remove::<crate::reflector::component::SelectedReflector>();
                     commands.spawn((
                         crate::reflector::bundle::ReflectorBundle::new(),
                         crate::reflector::component::SelectedReflector,
