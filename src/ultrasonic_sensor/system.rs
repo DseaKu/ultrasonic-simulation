@@ -88,11 +88,19 @@ pub fn collect_sensor_data(
                     Vec2::new(-0.5, 0.0),
                     Color::BLACK,
                 );
-                if let Some((ref_transform, _)) = reflector_query.iter().next() {
+                if let Some((ref_transform, reflector)) = reflector_query.iter().next() {
                     let dist = origin.distance(ref_transform.translation.xy());
                     gizmos.text_2d(
                         Vec2::new(-500.0, 240.0),
                         &format!("Reflector Distance: {:.1} mm", dist),
+                        36.0,
+                        Vec2::new(-0.5, 0.0),
+                        Color::BLACK,
+                    );
+                    let speed_m_s = reflector.current_velocity.length() / 1000.0;
+                    gizmos.text_2d(
+                        Vec2::new(-500.0, 180.0),
+                        &format!("Reflector Speed: {:.2} m/s", speed_m_s),
                         36.0,
                         Vec2::new(-0.5, 0.0),
                         Color::BLACK,
@@ -231,11 +239,19 @@ pub fn collect_sensor_data(
                 Vec2::new(-0.5, 0.0),
                 Color::BLACK,
             );
-            if let Some((ref_transform, _)) = reflector_query.iter().next() {
+            if let Some((ref_transform, reflector)) = reflector_query.iter().next() {
                 let dist = origin.distance(ref_transform.translation.xy());
                 gizmos.text_2d(
                     Vec2::new(-500.0, 240.0),
                     &format!("Reflector Distance: {:.1} mm", dist),
+                    36.0,
+                    Vec2::new(-0.5, 0.0),
+                    Color::BLACK,
+                );
+                let speed_m_s = reflector.current_velocity.length() / 1000.0;
+                gizmos.text_2d(
+                    Vec2::new(-500.0, 180.0),
+                    &format!("Reflector Speed: {:.2} m/s", speed_m_s),
                     36.0,
                     Vec2::new(-0.5, 0.0),
                     Color::BLACK,
